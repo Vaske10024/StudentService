@@ -1,0 +1,1 @@
+package org.raflab.studsluzba.repositories.notification;import org.raflab.studsluzba.model.notification.NotificationTemplate;import org.springframework.data.jpa.repository.JpaRepository;public interface NotificationTemplateRepository extends JpaRepository<NotificationTemplate,Long>{}

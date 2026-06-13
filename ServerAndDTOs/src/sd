@@ -1,0 +1,60 @@
+Program      ::= { MacroDef } PlanDef ;
+
+MacroDef     ::= "macro" IDENT "(" [ Params ] ")" Block ;
+Params       ::= IDENT { "," IDENT } ;
+
+PlanDef      ::= "plan" IDENT "{" Header { Stmt } "}" ;
+
+Header       ::= "civ" ":" IDENT ";"
+               | "map" ":" IDENT ";"
+               | "start" ":" TIME "," "villagers" ":" INT [ "," "scout" ":" IDENT ] ";" ;
+
+Stmt         ::= LetStmt | CallStmt | EventStmt | IfStmt | GoalStmt | AssertStmt ;
+
+LetStmt      ::= "let" IDENT "=" Expr ";" ;
+CallStmt     ::= "call" IDENT "(" [ Args ] ")" ";" ;
+Args         ::= Expr { "," Expr } ;
+
+EventStmt    ::= "at" TIME ":" ActionList ";"
+               | "do" Interval ":" ActionList ";" ;
+
+Interval     ::= TIME ".." TIME ;
+
+IfStmt       ::= "if" Cond Block [ "else" Block ] ;
+
+GoalStmt     ::= "goal" TIME ":" GoalSpec ";" ;
+GoalSpec     ::= "age" IDENT
+               | "have" INT IDENT
+               | "tech" IDENT ;
+
+AssertStmt   ::= "assert" Cond ";" ;
+
+ActionList   ::= Action { "," Action } ;
+
+Action       ::= "train" INT IDENT "at" IDENT
+               | "build" INT IDENT [ "at" IDENT ]
+               | "research" IDENT "at" IDENT
+               | "assign" INT "villagers" "to" Resource
+               | "rally" IDENT "to" IDENT
+               | "ageup" IDENT "with" IDENT
+               | "attack" IDENT
+               | "raid" IDENT
+               | "pressure" IDENT ;
+
+Resource     ::= "food" | "wood" | "gold" | "stone" ;
+
+Cond         ::= Expr RelOp Expr
+               | Metric RelOp Expr
+               | "scout" "." IDENT RelOp Expr
+               | Cond ("and" | "or") Cond
+               | "not" Cond
+               | "(" Cond ")" ;
+
+Metric       ::= "tc_idle" | "no_supply_block" | "blacksmith_queue" | "have" IDENT ;
+
+RelOp        ::= "==" | "!=" | "<" | "<=" | ">" | ">=" ;
+
+Expr         ::= INT | TIME | IDENT | STRING
+               | Expr ("+"|"-"|"*"|"/") Expr ;
+
+Block        ::= "{" { Stmt } "}" ;

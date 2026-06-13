@@ -1,0 +1,1 @@
+package org.raflab.studsluzba.repositories.schedule;import org.raflab.studsluzba.model.schedule.Room;import org.springframework.data.jpa.repository.JpaRepository;public interface RoomRepository extends JpaRepository<Room,Long>{}

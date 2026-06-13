@@ -1,0 +1,1 @@
+package org.raflab.studsluzba.repositories.notification;import org.raflab.studsluzba.model.notification.Notification;import org.springframework.data.jpa.repository.JpaRepository;import java.util.List;public interface NotificationRepository extends JpaRepository<Notification,Long>{List<Notification>findByRecipientIdOrderByCreatedAtDesc(Long userId);}

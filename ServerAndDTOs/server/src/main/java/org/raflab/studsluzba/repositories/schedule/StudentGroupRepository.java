@@ -1,0 +1,1 @@
+package org.raflab.studsluzba.repositories.schedule;import org.raflab.studsluzba.model.schedule.StudentGroup;import org.springframework.data.jpa.repository.JpaRepository;public interface StudentGroupRepository extends JpaRepository<StudentGroup,Long>{}
