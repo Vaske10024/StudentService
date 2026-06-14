@@ -79,7 +79,7 @@ public class EnrollmentWorkflowService {
 
         UserAccount user = new UserAccount();
         user.setUsername(app.getUsername()); user.setPasswordHash(passwordEncoder.encode(initialPassword));
-        user.setRole(Role.STUDENT); user.setEnabled(true); user.setLinkedStudentPodaci(student); user.setLinkedStudentIndeks(indeks);
+        user.setRole(Role.STUDENT); user.setEnabled(true); user.setMustChangePassword(true); user.setLinkedStudentPodaci(student); user.setLinkedStudentIndeks(indeks);
         userRepo.save(user);
         tuitionService.createInitialPlan(indeks, FinancingType.SELF_FINANCED, app.getTuitionEur());
 

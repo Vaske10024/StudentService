@@ -90,6 +90,9 @@ public class IspitniRokController {
         dto.setRegistrationEnd(r.getRegistrationEnd());
         dto.setCancellationEnd(r.getCancellationEnd());
         dto.setActive(r.isActive());
+        dto.setExamCount(ispitRepo.findByIspitniRokId(r.getId()).size());
+        dto.setReady(r.isActive() && r.getRegistrationStart() != null && r.getRegistrationEnd() != null
+                && r.getCancellationEnd() != null && dto.getExamCount() > 0);
         return dto;
     }
 

@@ -29,7 +29,7 @@ public class StudentProfileService {
     private final StudentIspitiViewService ispitiViewService;
     private final IspitQueryRepository prijavaRepo;
     private final PrijavaMappers prijavaMappers;
-    private final UplataService uplataService;
+    private final FinanceService financeService;
     private final UpisObnovaService upisObnovaService;
     private final SkolskaGodinaService skolskaGodinaService;
     private final StudentLifecycleService studentLifecycleService;
@@ -86,8 +86,8 @@ public class StudentProfileService {
                 .map(u -> new UpisanaGodinaDTO(u.getId(), "UPIS", u.getUpisujeGodinu(), u.getDatum(), u.getNapomena()))
                 .collect(Collectors.toList()));
         dto.setRenewals(upisObnovaService.readObnoveDto(dashboardIndex.getId()));
-        dto.setPayments(uplataService.listDto(dashboardIndex.getId()));
-        dto.setBalance(uplataService.saldo(dashboardIndex.getId()));
+        dto.setPayments(financeService.ledgerDto(dashboardIndex.getId()));
+        dto.setBalance(financeService.balance(dashboardIndex.getId()));
         dto.setSchoolYear(entityMappers.fromSkolskaGodinaToDTO(skolskaGodinaService.active()));
         dto.setStatus(studentLifecycleService.getStatus(dashboardIndex.getId()));
         dto.setStatusHistory(studentLifecycleService.history(dashboardIndex.getId()));

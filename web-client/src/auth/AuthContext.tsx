@@ -9,6 +9,7 @@ interface AuthContextValue {
   login: (username: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
   hasRole: (...roles: Role[]) => boolean;
+  hasPermission: (...permissions: string[]) => boolean;
   refresh: () => Promise<void>;
 }
 
@@ -35,8 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     void refresh();
     const listener = () => setUser(null);
-    window.addEventListener('auth:forbidden', listener);
-    return () => window.removeEventListener('auth:forbidden', listener);
+    window.addEventListener('auth:unauthorized', listener);
+    return () => window.removeEventListener('auth:unauthorized', listener);
   }, [refresh]);
 
   const login = useCallback(async (username: string, password: string) => {
@@ -52,8 +53,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const hasRole = useCallback((...roles: Role[]) => Boolean(user && roles.includes(user.role)), [user]);
+  const hasPermission = useCallback((...permissions: string[]) => Boolean(user && permissions.every((permission) => user.permissions?.includes(permission))), [user]);
 
-  const value = useMemo<AuthContextValue>(() => ({ user, loading, error, login, logout, hasRole, refresh }), [user, loading, error, login, logout, hasRole, refresh]);
+  const value = useMemo<AuthContextValue>(() => ({ user, loading, error, login, logout, hasRole, hasPermission, refresh }), [user, loading, error, login, logout, hasRole, hasPermission, refresh]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

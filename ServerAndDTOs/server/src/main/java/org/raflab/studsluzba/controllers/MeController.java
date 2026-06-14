@@ -10,6 +10,8 @@ import org.raflab.studsluzba.repositories.IspitRepository;
 import org.raflab.studsluzba.security.ApiException;
 import org.raflab.studsluzba.security.CurrentUser;
 import org.raflab.studsluzba.services.StudentProfileService;
+import org.raflab.studsluzba.services.PermissionService;
+import org.raflab.studsluzba.services.AvailableExamService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,10 +25,12 @@ public class MeController {
     private final StudentProfileService studentProfileService;
     private final DrziPredmetRepository drziPredmetRepository;
     private final IspitRepository ispitRepository;
+    private final PermissionService permissionService;
+    private final AvailableExamService availableExamService;
 
     @GetMapping
     public AuthUserDTO me() {
-        return AuthController.toDto(currentUser.account());
+        return AuthController.toDto(currentUser.account(), permissionService.currentPermissions());
     }
 
     @GetMapping("/student/dashboard")
@@ -54,6 +58,11 @@ public class MeController {
         return result;
     }
 
+    @GetMapping("/student/available-exams")
+    public List<AvailableExamDTO> availableStudentExams() {
+        return availableExamService.forStudent(requireLinkedStudentIndeksId());
+    }
+
     @GetMapping("/student/payments")
     public StudentDashboardDTO studentPayments() {
         StudentDashboardDTO dto = studentProfileService.getStudentDashboard(requireLinkedStudentIndeksId());
@@ -67,7 +76,7 @@ public class MeController {
     @GetMapping("/professor/dashboard")
     public ProfessorDashboardDTO professorDashboard() {
         ProfessorDashboardDTO dto = new ProfessorDashboardDTO();
-        dto.setUser(AuthController.toDto(currentUser.account()));
+        dto.setUser(AuthController.toDto(currentUser.account(), permissionService.currentPermissions()));
         dto.setSubjects(professorSubjects());
         dto.setExams(professorExams());
         return dto;
@@ -115,6 +124,10 @@ public class MeController {
         if (dp.getNastavnik() != null) {
             dto.setNastavnikId(dp.getNastavnik().getId());
             dto.setNastavnikImePrezime(dp.getNastavnik().getIme() + " " + dp.getNastavnik().getPrezime());
+        }
+        if (dp.getSkolskaGodina() != null) {
+            dto.setSkolskaGodinaId(dp.getSkolskaGodina().getId());
+            dto.setSkolskaGodinaNaziv(dp.getSkolskaGodina().getGodina());
         }
         return dto;
     }

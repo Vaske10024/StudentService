@@ -2,7 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
 export function AppShell() {
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
 
   async function onLogout() {
@@ -37,15 +37,18 @@ export function AppShell() {
             <NavLink to="/admin/subjects">Subjects</NavLink>
             <NavLink to="/admin/programs">Programs</NavLink>
             <NavLink to="/admin/school-years">School years</NavLink>
-            <NavLink to="/admin/reports">Reports</NavLink>
-            <NavLink to="/admin/enrollments">Enrollments</NavLink>
-            <NavLink to="/admin/payments">Ledger payments</NavLink>
+            <NavLink to="/admin/exam-periods">Exam periods</NavLink>
+            <NavLink to="/admin/exams">Exams</NavLink>
+            {hasPermission('REPORT_EXPORT') && <NavLink to="/admin/reports">Reports</NavLink>}
+            {hasPermission('ENROLLMENT_WRITE') && <NavLink to="/admin/enrollments">Enrollments</NavLink>}
+            {hasPermission('DOCUMENT_DECIDE') && <NavLink to="/admin/requests">Student requests</NavLink>}
+            {hasPermission('FINANCE_WRITE') && <NavLink to="/admin/payments">Ledger payments</NavLink>}
           </>}
           <NavLink to="/account">Account</NavLink>
         </nav>
         <button type="button" onClick={onLogout}>Logout</button>
       </aside>
-      <main className="content"><Outlet /></main>
+      <main className="content">{user?.mustChangePassword && <p className="error">Koristite privremenu lozinku. Promenite je na stranici Account pre nastavka rada.</p>}<Outlet /></main>
     </div>
   );
 }

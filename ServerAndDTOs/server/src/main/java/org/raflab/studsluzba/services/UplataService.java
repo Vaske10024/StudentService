@@ -38,6 +38,7 @@ public class UplataService {
 
     private final UplataRepository uplataRepo;
     private final StudentIndeksRepository indeksRepo;
+    private final FinanceService financeService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<LocalDate, ExchangeRate> rateCache = new ConcurrentHashMap<>();
 
@@ -72,7 +73,9 @@ public class UplataService {
         u.setIznosRsd(iznosRsd.setScale(2, RoundingMode.HALF_UP));
         u.setSrednjiKursEur(rate.getValue().setScale(6, RoundingMode.HALF_UP));
         u.setFallbackKurs(rate.isFallback());
-        return uplataRepo.save(u).getId();
+        Uplata saved = uplataRepo.save(u);
+        financeService.postPayment(indeksId, toEur(saved), "Legacy RSD payment #" + saved.getId());
+        return saved.getId();
     }
 
     @Transactional(readOnly = true)

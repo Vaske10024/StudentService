@@ -12,6 +12,8 @@ public class DrziPredmetLiteDTO {
     private Long realizacijaPredmetaId;
     private String programOznaka;
     private String uloga;
+    private Long skolskaGodinaId;
+    private String skolskaGodinaNaziv;
 
     @Override
     public String toString() {

@@ -3,6 +3,7 @@ package org.raflab.studsluzba.services;
 import lombok.RequiredArgsConstructor;
 import org.raflab.studsluzba.model.StudentIndeks;
 import org.raflab.studsluzba.model.dtos.IspitIzlazakRequest;
+import org.raflab.studsluzba.model.dtos.ExamEligibilityDTO;
 import org.raflab.studsluzba.model.dtos.PrijavaCreateRequest;
 import org.raflab.studsluzba.model.dtos.PrijavaResultUpdateRequest;
 import org.raflab.studsluzba.model.ispiti.Ispit;
@@ -90,6 +91,36 @@ public class IspitCommandService {
 
         PrijavaIspita saved = iqRepo.save(pi);
         return saved != null && saved.getId() != null ? saved.getId() : pi.getId();
+    }
+
+    @Transactional(readOnly = true)
+    public ExamEligibilityDTO eligibility(Long ispitId, Long studentIndeksId) {
+        try {
+            Ispit ispit = ispitRepo.findById(ispitId)
+                    .orElseThrow(() -> ApiException.notFound("Ispit ne postoji: " + ispitId));
+            StudentIndeks si = siRepo.findById(studentIndeksId)
+                    .orElseThrow(() -> ApiException.notFound("Indeks ne postoji: " + studentIndeksId));
+            if (ispit.isZakljucen()) throw ApiException.conflict("EXAM_LOCKED", "Ispit je zaključan.");
+            studentLifecycleService.assertAcademicallyActive(si.getId());
+            debtPolicyService.assertExamRegistrationAllowed(si.getId());
+            ensureStudentAccountEnabled(si);
+            Long predmetId = resolvePredmetId(ispit);
+            if (predmetId == null) throw ApiException.conflict("EXAM_WITHOUT_SUBJECT", "Ispit nema povezan predmet.");
+            prerequisiteService.assertSatisfied(si.getId(), predmetId);
+            if (!slusaRepo.existsStudentSlusaPredmetAktivna(si.getId(), predmetId)) {
+                throw ApiException.conflict("SUBJECT_NOT_ENROLLED", "Student ne sluša predmet u aktivnoj školskoj godini.");
+            }
+            if (iqRepo.existsPassedSubject(si.getId(), predmetId)) {
+                throw ApiException.conflict("SUBJECT_ALREADY_PASSED", "Predmet je već položen ili priznat.");
+            }
+            if (iqRepo.findAktivnaPrijava(ispitId, studentIndeksId).isPresent()) {
+                throw ApiException.conflict("ALREADY_REGISTERED", "Ispit je već prijavljen.");
+            }
+            validateRegistrationWindow(ispit);
+            return new ExamEligibilityDTO(true, "ELIGIBLE", "Ispit je dostupan za prijavu.");
+        } catch (ApiException ex) {
+            return new ExamEligibilityDTO(false, ex.getCode(), ex.getMessage());
+        }
     }
 
     public Long azurirajRezultat(PrijavaResultUpdateRequest req) {

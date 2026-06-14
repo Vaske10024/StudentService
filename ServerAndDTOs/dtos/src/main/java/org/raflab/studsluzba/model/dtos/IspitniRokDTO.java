@@ -16,6 +16,8 @@ public class IspitniRokDTO {
     private LocalDateTime registrationEnd;
     private LocalDateTime cancellationEnd;
     private boolean active;
+    private int examCount;
+    private boolean ready;
 
     @Override
     public String toString() {

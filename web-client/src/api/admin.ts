@@ -17,7 +17,7 @@ export const adminApi = {
   realizations: (schoolYearId?: string | number) => apiRequest<Record<string, unknown>[]>(`/api/realizacija/all${schoolYearId ? `?skolskaGodinaId=${schoolYearId}` : ''}`),
   generateRealizations: (programId: string | number, schoolYearId?: string | number) =>
     apiRequest<Record<string, unknown>[]>(`/api/realizacija/generate?programId=${programId}${schoolYearId ? `&skolskaGodinaId=${schoolYearId}` : ''}`, { method: 'POST' }),
-  createIndex: (body: unknown) => apiRequest<number>('/api/student/saveindeks', { method: 'POST', body: JSON.stringify(body) }),
+  createIndex: (body: unknown) => apiRequest<{ indexId: number; username: string; temporaryPassword?: string | null; accountCreated: boolean }>('/api/student/saveindeks/provision', { method: 'POST', body: JSON.stringify(body) }),
   enrollStudyYear: (indexId: string | number, studyYear: number) =>
     apiRequest<number>('/api/studij/upis', { method: 'POST', body: JSON.stringify({ indeksId: Number(indexId), upisujeGodinu: studyYear }) }),
   syncStudentSubjects: (indexId: string | number) =>
@@ -27,4 +27,9 @@ export const adminApi = {
   schoolYears: () => apiRequest<Record<string, unknown>[]>('/api/sg/all'),
   examPeriods: () => apiRequest<Record<string, unknown>[]>('/api/rok/all'),
   examsForPeriod: (periodId: string | number) => apiRequest<Record<string, unknown>[]>(`/api/rok/${periodId}/ispiti`)
+  ,createExamPeriod: (body: unknown) => apiRequest<number>('/api/rok/create', { method: 'POST', body: JSON.stringify(body) })
+  ,updateExamPeriod: (id: string | number, body: unknown) => apiRequest(`/api/rok/${id}`, { method: 'PUT', body: JSON.stringify(body) })
+  ,createExam: (body: unknown) => apiRequest<number>('/api/ispit/admin/create', { method: 'POST', body: JSON.stringify(body) })
+  ,updateExamTime: (id: string | number, body: unknown) => apiRequest(`/api/ispit/admin/${id}/vreme`, { method: 'PATCH', body: JSON.stringify(body) })
+  ,lockExam: (id: string | number) => apiRequest(`/api/ispit/admin/${id}/zakljucaj`, { method: 'PATCH' })
 };

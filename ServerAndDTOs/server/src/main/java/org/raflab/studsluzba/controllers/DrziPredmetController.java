@@ -46,6 +46,10 @@ public class DrziPredmetController {
             dto.setProgramOznaka(dp.getRealizacijaPredmeta().getProgramPredmet().getProgram().getOznaka());
         }
         dto.setUloga(dp.getUloga() == null ? null : dp.getUloga().name());
+        if (dp.getSkolskaGodina() != null) {
+            dto.setSkolskaGodinaId(dp.getSkolskaGodina().getId());
+            dto.setSkolskaGodinaNaziv(dp.getSkolskaGodina().getGodina());
+        }
         return dto;
     }
 

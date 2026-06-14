@@ -36,6 +36,9 @@ public class UserAccount {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    @Column(nullable = false)
+    private boolean mustChangePassword;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "linked_student_podaci_id")
     private StudentPodaci linkedStudentPodaci;

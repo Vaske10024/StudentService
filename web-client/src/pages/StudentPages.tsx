@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { changePassword } from '../api/auth';
-import { apiErrorMessage } from '../api/client';
+import { apiErrorMessage, apiRequest } from '../api/client';
 import { meApi } from '../api/me';
 import { DataTable } from '../components/DataTable';
 import { ErrorMessage, Loading } from '../components/Status';
@@ -27,10 +27,10 @@ const examColumns = [
 ];
 
 const paymentColumns = [
-  { header: 'Date', render: (row: Record<string, unknown>) => pick(row, ['datum']) },
-  { header: 'Amount RSD', render: (row: Record<string, unknown>) => money(row.iznosRsd, 'RSD') },
-  { header: 'EUR rate', render: (row: Record<string, unknown>) => money(row.srednjiKursEur, 'RSD') },
-  { header: 'Rate source', render: (row: Record<string, unknown>) => row.fallbackKurs ? 'Fallback rate' : 'Official rate' }
+  { header: 'Date', render: (row: Record<string, unknown>) => pick(row, ['createdAt']) },
+  { header: 'Type', render: (row: Record<string, unknown>) => pick(row, ['type']) },
+  { header: 'Amount', render: (row: Record<string, unknown>) => money(row.amountEur, 'EUR') },
+  { header: 'Description', render: (row: Record<string, unknown>) => pick(row, ['description']) }
 ];
 
 const passedColumns = [
@@ -91,7 +91,7 @@ export function StudentDashboardPage() {
         <article className="metricCard"><span>School year</span><strong>{String(record(data?.schoolYear).godina ?? '—')}</strong><small>{String(data?.currentSubjects?.length ?? 0)} current subjects</small></article>
         <article className="metricCard"><span>Earned ECTS</span><strong>{earnedEcts}</strong><small>{passed.length} passed subjects</small></article>
         <article className="metricCard"><span>Average grade</span><strong>{average}</strong><small>Across passed subjects</small></article>
-        <article className="metricCard"><span>Remaining balance</span><strong>{money(balance.preostaloEur, 'EUR')}</strong><small>{money(balance.preostaloRsd, 'RSD')}</small></article>
+        <article className="metricCard"><span>Remaining balance</span><strong>{money(balance.debtEur, 'EUR')}</strong><small>Ledger source of truth</small></article>
       </div>
       <section className="card"><h2>Current subjects</h2><DataTable rows={asRows(data?.currentSubjects)} columns={subjectColumns} /></section>
       <section className="card"><h2>Active exam registrations</h2><DataTable rows={asRows(data?.activeExamRegistrations)} columns={examColumns} /></section>
@@ -152,13 +152,53 @@ export function StudentSubjectsPage() {
 }
 
 export function StudentExamsPage() {
-  const { data, loading, error } = useApi(meApi.studentExams, []);
-  if (loading) return <Loading />;
-  if (error) return <ErrorMessage message={error} />;
+  const registrations = useApi(meApi.studentExams, []);
+  const available = useApi(meApi.availableStudentExams, []);
+  const [submitting, setSubmitting] = useState<number | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function register(examId: number) {
+    const indexId = registrations.data?.activeIndex?.id;
+    if (!indexId || submitting !== null) return;
+    setSubmitting(examId); setActionError(null); setMessage(null);
+    try {
+      await apiRequest('/api/ispit/prijava', { method: 'POST', body: JSON.stringify({ ispitId: examId, studentIndeksId: indexId }) });
+      setMessage('Ispit je uspešno prijavljen.');
+      await Promise.all([registrations.reload(), available.reload()]);
+    } catch (error) { setActionError(apiErrorMessage(error, 'Prijava ispita nije uspela.')); }
+    finally { setSubmitting(null); }
+  }
+
+  async function cancel(registrationId: number) {
+    if (submitting !== null || !window.confirm('Da li želite da odjavite ispit?')) return;
+    setSubmitting(registrationId); setActionError(null); setMessage(null);
+    try {
+      await apiRequest(`/api/ispit/prijava/${registrationId}/odjavi`, { method: 'PATCH', body: JSON.stringify({ reason: 'Odjava studenta kroz portal' }) });
+      setMessage('Ispit je uspešno odjavljen.');
+      await Promise.all([registrations.reload(), available.reload()]);
+    } catch (error) { setActionError(apiErrorMessage(error, 'Odjava ispita nije uspela.')); }
+    finally { setSubmitting(null); }
+  }
+
+  if (registrations.loading || available.loading) return <Loading />;
+  if (registrations.error) return <ErrorMessage message={registrations.error} />;
+  const availableColumns = [
+    { header: 'Predmet', render: (row: Record<string, unknown>) => `${pick(row, ['subjectCode'])} ${pick(row, ['subjectName'])}` },
+    { header: 'Termin', render: (row: Record<string, unknown>) => `${pick(row, ['examDate'])} ${pick(row, ['examTime'])}` },
+    { header: 'Prijava', render: (row: Record<string, unknown>) => `${pick(row, ['registrationStart'])} - ${pick(row, ['registrationEnd'])}` },
+    { header: 'Odjava do', render: (row: Record<string, unknown>) => pick(row, ['cancellationEnd']) },
+    { header: 'Status', render: (row: Record<string, unknown>) => <span className="statusBadge">{String(row.eligibilityMessage ?? '')}</span> },
+    { header: 'Akcija', render: (row: Record<string, unknown>) => row.activeRegistrationId
+      ? <button type="button" className="secondaryButton" disabled={!row.cancellationAllowed || submitting !== null} onClick={() => void cancel(Number(row.activeRegistrationId))}>Odjavi</button>
+      : <button type="button" disabled={!row.eligible || submitting !== null} onClick={() => void register(Number(row.examId))}>Prijavi</button> }
+  ];
   return (
     <section>
-      <section className="card"><h1>Active exam registrations</h1><DataTable rows={asRows(data?.activeExamRegistrations)} columns={examColumns} /></section>
-      <section className="card"><h1>Previous attempts</h1><DataTable rows={asRows(data?.previousExamAttempts)} columns={examColumns} /></section>
+      {message && <p className="success">{message}</p>}{actionError && <ErrorMessage message={actionError} />}{available.error && <ErrorMessage message={available.error} />}
+      <section className="card"><h1>Dostupni ispiti</h1><p className="muted">Prikazani su rokovi, prozori prijave i razlog kada prijava nije moguća.</p><DataTable rows={asRows(available.data)} columns={availableColumns} empty="Trenutno nema ispita za predmete koje slušate." /></section>
+      <section className="card"><h1>Aktivne prijave</h1><DataTable rows={asRows(registrations.data?.activeExamRegistrations)} columns={examColumns} /></section>
+      <section className="card"><h1>Prethodni izlasci</h1><DataTable rows={asRows(registrations.data?.previousExamAttempts)} columns={examColumns} /></section>
     </section>
   );
 }
@@ -172,9 +212,9 @@ export function StudentPaymentsPage() {
     <section>
       <section className="card"><h1>Payments</h1><DataTable rows={asRows(data?.payments)} columns={paymentColumns} /></section>
       <section className="card"><h2>Balance</h2><div className="metricGrid">
-        <article className="metricCard"><span>Total paid</span><strong>{money(balance.ukupnoEur, 'EUR')}</strong><small>{money(balance.ukupnoRsd, 'RSD')}</small></article>
-        <article className="metricCard"><span>Remaining</span><strong>{money(balance.preostaloEur, 'EUR')}</strong><small>{money(balance.preostaloRsd, 'RSD')}</small></article>
-        <article className="metricCard"><span>Current EUR rate</span><strong>{money(balance.currentEurRate, 'RSD')}</strong><small>{balance.fallbackRateUsed ? 'Fallback rate in use' : 'Official exchange rate'}</small></article>
+        <article className="metricCard"><span>Dugovanje</span><strong>{money(balance.debtEur, 'EUR')}</strong><small>Isti saldo se koristi za prijavu ispita</small></article>
+        <article className="metricCard"><span>Pretplata</span><strong>{money(balance.creditEur, 'EUR')}</strong><small>Raspoloživ kredit</small></article>
+        <article className="metricCard"><span>Saldo</span><strong>{money(balance.balanceEur, 'EUR')}</strong><small>Pozitivno znači dugovanje</small></article>
       </div></section>
     </section>
   );

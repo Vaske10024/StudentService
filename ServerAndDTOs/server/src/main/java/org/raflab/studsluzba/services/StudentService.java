@@ -55,6 +55,11 @@ public class StudentService {
 
     @Transactional
     public Long saveIndeks(StudentIndeksRequest req) {
+        return saveIndeksProvision(req).getIndexId();
+    }
+
+    @Transactional
+    public StudentIndexProvisionDTO saveIndeksProvision(StudentIndeksRequest req) {
         if (req.getStudent() == null || req.getStudent().getId() == null) {
             throw ApiException.badRequest("Student je obavezan za kreiranje indeksa.");
         }
@@ -87,8 +92,9 @@ public class StudentService {
 
             try {
                 StudentIndeks saved = studentIndeksRepository.saveAndFlush(si);
-                userAccountService.provisionStudentAccount(sp, saved);
-                return saved.getId();
+                UserAccountService.ProvisionResult provision = userAccountService.provisionStudentAccountWithCredential(sp, saved);
+                return new StudentIndexProvisionDTO(saved.getId(), provision.getAccount().getUsername(),
+                        provision.getTemporaryPassword(), provision.isCreated());
             } catch (DataIntegrityViolationException e) {
                 lastConflict = e;
             }
@@ -163,6 +169,12 @@ public class StudentService {
                 imeQ, prezimeQ, studProgramQ, godina, broj, pageable
         );
         return sp.map(entityMappers::fromStudentPodaciToDTO);
+    }
+
+    public Page<StudentDTO> globalSearch(String query, int page, int size) {
+        if (query == null || query.trim().isEmpty()) return Page.empty(PageRequest.of(page, size));
+        return studentPodaciRepository.globalSearch(query.trim(), PageRequest.of(page, size, Sort.by("id").descending()))
+                .map(entityMappers::fromStudentPodaciToDTO);
     }
 
     public StudentProfileDTO getStudentProfile(Long id) {

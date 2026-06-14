@@ -22,7 +22,7 @@ class UplataServiceTest {
     void saldoUsesBigDecimalAndStoredExchangeRate() {
         UplataRepository uplataRepo = mock(UplataRepository.class);
         StudentIndeksRepository indeksRepo = mock(StudentIndeksRepository.class);
-        UplataService service = new UplataService(uplataRepo, indeksRepo);
+        UplataService service = new UplataService(uplataRepo, indeksRepo, mock(FinanceService.class));
         ReflectionTestUtils.setField(service, "defaultTuitionEur", new BigDecimal("1000.00"));
         ReflectionTestUtils.setField(service, "fallbackRate", new BigDecimal("100.00"));
         ReflectionTestUtils.setField(service, "exchangeRateApiUrl", "not-a-uri");

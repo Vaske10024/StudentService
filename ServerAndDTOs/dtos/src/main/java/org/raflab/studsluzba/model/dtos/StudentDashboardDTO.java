@@ -17,8 +17,8 @@ public class StudentDashboardDTO {
     private List<PrijavaResponseDTO> previousExamAttempts = new ArrayList<>();
     private List<UpisanaGodinaDTO> studyEnrollments = new ArrayList<>();
     private List<UpisanaGodinaDTO> renewals = new ArrayList<>();
-    private List<UplataDTO> payments = new ArrayList<>();
-    private SaldoResponse balance;
+    private List<LedgerEntryDTO> payments = new ArrayList<>();
+    private FinanceBalanceDTO balance;
     private SkolskaGodinaDTO schoolYear;
     private StudentStatusDTO status;
     private List<StudentStatusHistoryDTO> statusHistory = new ArrayList<>();

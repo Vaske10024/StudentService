@@ -8,6 +8,8 @@ export interface AuthUser {
   linkedStudentPodaciId?: number | null;
   linkedStudentIndeksId?: number | null;
   linkedNastavnikId?: number | null;
+  mustChangePassword: boolean;
+  permissions: string[];
 }
 
 export interface ApiErrorBody {
@@ -82,6 +84,27 @@ export interface StudentDashboard {
   schoolYear?: Record<string, unknown>;
   status?: Record<string, unknown>;
   statusHistory?: unknown[];
+}
+
+export interface AvailableExam {
+  examId: number;
+  periodId?: number | null;
+  subjectId: number;
+  subjectCode?: string | null;
+  subjectName: string;
+  professorName?: string | null;
+  examDate?: string | null;
+  examTime?: string | null;
+  registrationStart?: string | null;
+  registrationEnd?: string | null;
+  cancellationEnd?: string | null;
+  periodActive: boolean;
+  locked: boolean;
+  eligible: boolean;
+  eligibilityCode: string;
+  eligibilityMessage: string;
+  activeRegistrationId?: number | null;
+  cancellationAllowed: boolean;
 }
 
 export interface ProfessorDashboard {

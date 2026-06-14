@@ -80,6 +80,12 @@ public class DocumentRequestService {
         return requestRepo.findByStudentIndeksIdOrderByCreatedAtDesc(indeksId);
     }
 
+    @Transactional(readOnly = true)
+    public List<StudentRequest> listAll() {
+        permissions.require(Permission.DOCUMENT_DECIDE);
+        return requestRepo.findAll();
+    }
+
     private StudentRequest require(Long id) {
         return requestRepo.findById(id).orElseThrow(() -> ApiException.notFound("Zahtev ne postoji: " + id));
     }

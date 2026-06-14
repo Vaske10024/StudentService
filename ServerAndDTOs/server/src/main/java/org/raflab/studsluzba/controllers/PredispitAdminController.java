@@ -27,19 +27,19 @@ public class PredispitAdminController {
 
     @PostMapping("/definicija")
     public Long createDef(@RequestBody @Validated PredispitCreateRequest req) {
-        currentUser.requireAdmin();
+        currentUser.requireAdminOrProfessorOwnsPredmetInYear(req.getPredmetId(), req.getSkolskaGodinaId());
         return defService.create(req.getPredmetId(), req.getSkolskaGodinaId(), req.getVrsta(), req.getMaxPoeni());
     }
 
     @PatchMapping("/definicija/{id}/max")
     public void updateMax(@PathVariable Long id, @RequestParam @Min(0) int max) {
-        currentUser.requireAdmin();
+        currentUser.requireAdminOrProfessorOwnsPredispitnaObaveza(id);
         defService.updateMax(id, max);
     }
 
     @DeleteMapping("/definicija/{id}")
     public void deleteDef(@PathVariable Long id) {
-        currentUser.requireAdmin();
+        currentUser.requireAdminOrProfessorOwnsPredispitnaObaveza(id);
         defService.delete(id);
     }
 

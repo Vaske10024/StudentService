@@ -5,6 +5,7 @@ import org.raflab.studsluzba.model.dtos.*;
 import org.raflab.studsluzba.security.CurrentUser;
 import org.raflab.studsluzba.services.IspitCommandService;
 import org.raflab.studsluzba.services.IspitQueryService;
+import org.raflab.studsluzba.services.IspitAdminService;
 import org.raflab.studsluzba.utils.IspitMappers;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +22,7 @@ public class IspitController {
     private final IspitCommandService command;
     private final IspitMappers ispitMappers;
     private final CurrentUser currentUser;
+    private final IspitAdminService adminService;
 
     @GetMapping("/{ispitId}/prijavljeni")
     public List<StudentLiteDTO> prijavljeni(@PathVariable Long ispitId) {
@@ -102,5 +104,11 @@ public class IspitController {
     public Long evidentirajIzlazak(@RequestBody @Valid IspitIzlazakRequest req) {
         currentUser.requireAdminOrProfessorOwnsPrijava(req.getPrijavaId());
         return command.evidentirajIzlazak(req);
+    }
+
+    @PatchMapping("/{ispitId}/zakljucaj")
+    public void zakljucajRezultate(@PathVariable Long ispitId) {
+        currentUser.requireAdminOrProfessorOwnsIspit(ispitId);
+        adminService.lock(ispitId);
     }
 }

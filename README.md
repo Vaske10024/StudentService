@@ -58,6 +58,109 @@ Relevant admin APIs:
 - `GET /api/realizacija/all?skolskaGodinaId={optionalId}`
 - `POST /api/drzi/create` with `realizacijaPredmetaId`, `nastavnikId`, and `uloga`
 - `POST /api/studij/upis` with `indeksId` and `upisujeGodinu`
+- `POST /api/studij/sync-subjects?indeksId={id}` to repair or refresh current subject assignments
+
+## Student lifecycle pipeline
+
+The normal production flow for creating and activating a student is:
+
+```text
+StudentPodaci
+    |
+StudentIndeks
+    |
+UserAccount (STUDENT)
+    |
+UpisGodine
+    |
+SlusaPredmet -> RealizacijaPredmeta -> all DrziPredmet assignments
+    |
+/api/me/student/** portal
+```
+
+### 1. Create personal data
+
+An admin creates `StudentPodaci` through `POST /api/student/add`. The faculty email is required and must be unique because it becomes the student's login username.
+
+Creating personal data alone does not create a login account or assign subjects.
+
+### 2. Create an index and login account
+
+An admin creates the first `StudentIndeks` through `POST /api/student/saveindeks`.
+
+In the same transaction, the backend:
+
+1. Connects the index to the selected study program.
+2. Deactivates any previously active index for the same student.
+3. Creates a `UserAccount` with role `STUDENT`, or links the existing student account to the new active index.
+4. Uses the faculty email as the username.
+5. Temporarily uses the faculty email as the initial password and stores only its BCrypt hash.
+
+The student can then log in with:
+
+```text
+username: faculty email
+password: faculty email
+```
+
+The student should immediately change the initial password from the student profile. The authenticated password-change endpoint is `POST /api/auth/password`.
+
+> TODO: Replace the email-based initial password with a generated temporary password and send it to the student's private email.
+
+Creating another index for the same student does not create another account or reset the changed password. The existing account is only linked to the new active index.
+
+### 3. Enroll a study year
+
+Creating an index does not automatically assign every subject from the program.
+
+An admin enrolls the student into a specific curriculum year through:
+
+```http
+POST /api/studij/upis
+
+{
+  "indeksId": 123,
+  "upisujeGodinu": 1
+}
+```
+
+The backend then:
+
+1. Requires an active `SkolskaGodina`.
+2. Reads all `ProgramPredmet` entries for the student's program and selected study year.
+3. Ensures one `RealizacijaPredmeta` exists for every curriculum subject in the active school year.
+4. Creates one `SlusaPredmet` per realization.
+
+`SlusaPredmet` links the student to the realization, not to one professor. Therefore, if three professors are assigned to the same realization, the student sees one subject with all three professor assignments and their roles.
+
+### 4. Synchronize subjects after curriculum changes
+
+If subjects or realizations are added after the student was already enrolled, the existing enrollment is not recreated. An admin can safely synchronize it through:
+
+```http
+POST /api/studij/sync-subjects?indeksId=123
+```
+
+The operation is idempotent: it creates missing `SlusaPredmet` records without duplicating existing ones. The same action is available as **Sync current subjects** on the admin student-detail screen.
+
+Use synchronization when a student has a valid active-year enrollment but the Subjects tab is empty or missing recently added curriculum subjects.
+
+### 5. Student portal data
+
+After login, the frontend uses ownership-safe `/api/me/student/**` endpoints. The logged-in student never supplies an arbitrary index ID.
+
+| Student screen | Main data |
+|---|---|
+| Dashboard | Identity, active index, status, school year, current subjects, earned ECTS, average grade, exam registrations, balance |
+| Profile | Personal data, active study record, index history, lifecycle history, subjects, exams, finances, password change |
+| Subjects | Curriculum code/name, ECTS, year/semester, active school year, all assigned professors and roles |
+| Exams | Active registrations and previous attempts with subject, date, time, professor, points, grade, and status |
+| Grades | Passed and unresolved subjects |
+| Payments | Payment history, remaining balance, and exchange-rate source |
+| Requests | Student-service requests and their decision status |
+| Notifications | Academic, exam, finance, and request notifications |
+
+If the student account is not linked to an index, `/api/me/student/**` requests are rejected. If the student has no active-year enrollment, current subjects remain empty until the admin enrolls the study year.
 
 ## Backend setup
 
@@ -149,6 +252,7 @@ The code uses an enum and centralized authorization helper so permissions can be
 | POST | `/api/auth/login` | Public + CSRF | Authenticate username/password, create server session. |
 | POST | `/api/auth/logout` | Authenticated + CSRF | Invalidate server session. |
 | GET | `/api/auth/me` | Authenticated | Return authenticated account DTO. |
+| POST | `/api/auth/password` | Authenticated + CSRF | Change the current account password after verifying the current password. |
 | GET | `/api/me` | Authenticated | Return authenticated account DTO through the safer `me` namespace. |
 
 ## Safer `me` endpoints

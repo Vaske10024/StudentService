@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -15,4 +17,6 @@ public class AuthUserDTO {
     private Long linkedStudentPodaciId;
     private Long linkedStudentIndeksId;
     private Long linkedNastavnikId;
+    private boolean mustChangePassword;
+    private List<String> permissions;
 }

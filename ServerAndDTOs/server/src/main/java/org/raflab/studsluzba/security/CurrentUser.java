@@ -154,4 +154,12 @@ public class CurrentUser {
             throw new AccessDeniedException("Profesor može menjati samo predispitne obaveze za svoje predmete.");
         }
     }
+
+    public void requireAdminOrProfessorOwnsPredmetInYear(Long predmetId, Long skolskaGodinaId) {
+        if (isAdmin()) return;
+        Long nastavnikId = linkedNastavnikId();
+        if (!isProfessor() || nastavnikId == null || drziRepo.getDrziPredmetNastavnikPredmetUGodini(predmetId, nastavnikId, skolskaGodinaId) == null) {
+            throw new AccessDeniedException("Profesor može menjati predispitne obaveze samo za svoje predmete.");
+        }
+    }
 }

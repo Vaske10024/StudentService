@@ -8,6 +8,7 @@ import org.raflab.studsluzba.model.security.Role;
 import org.raflab.studsluzba.model.security.UserAccount;
 import org.raflab.studsluzba.security.CurrentUser;
 import org.raflab.studsluzba.services.UserAccountService;
+import org.raflab.studsluzba.services.PermissionService;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -44,7 +45,7 @@ class AuthControllerTest {
         account.setEnabled(true);
         when(currentUser.account()).thenReturn(account);
 
-        AuthController controller = new AuthController(authenticationManager, currentUser, mock(UserAccountService.class));
+        AuthController controller = new AuthController(authenticationManager, currentUser, mock(UserAccountService.class), mock(PermissionService.class));
         LoginRequest request = new LoginRequest();
         request.setUsername("admin@example.com");
         request.setPassword("secret");
@@ -63,7 +64,7 @@ class AuthControllerTest {
     void loginFailurePropagatesBadCredentials() {
         AuthenticationManager authenticationManager = mock(AuthenticationManager.class);
         when(authenticationManager.authenticate(any())).thenThrow(new BadCredentialsException("bad"));
-        AuthController controller = new AuthController(authenticationManager, mock(CurrentUser.class), mock(UserAccountService.class));
+        AuthController controller = new AuthController(authenticationManager, mock(CurrentUser.class), mock(UserAccountService.class), mock(PermissionService.class));
         LoginRequest request = new LoginRequest();
         request.setUsername("admin@example.com");
         request.setPassword("wrong");

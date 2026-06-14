@@ -105,6 +105,8 @@ th { color: #52607d; font-size: 0.85rem; text-transform: uppercase; letter-spaci
 .checkLabel { display: flex; align-items: center; gap: 0.6rem; }
 .checkLabel input { width: auto; }
 .pager { display: flex; gap: 1rem; align-items: center; justify-content: flex-end; margin-top: 1rem; }
+.inlineForm { display: flex; gap: 0.45rem; align-items: center; flex-wrap: wrap; min-width: 360px; }
+.inlineForm input { width: auto; min-width: 85px; }
 .modalBackdrop { position: fixed; inset: 0; background: rgba(9, 15, 31, 0.55); display: grid; place-items: center; padding: 1rem; z-index: 20; }
 .modal { background: white; border-radius: 18px; padding: 1rem; width: min(900px, 100%); max-height: 90vh; overflow: auto; }
 .modal header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }

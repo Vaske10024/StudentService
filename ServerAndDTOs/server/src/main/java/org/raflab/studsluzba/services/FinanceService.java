@@ -3,6 +3,7 @@ package org.raflab.studsluzba.services;
 import lombok.RequiredArgsConstructor;
 import org.raflab.studsluzba.model.StudentIndeks;
 import org.raflab.studsluzba.model.dtos.FinanceBalanceDTO;
+import org.raflab.studsluzba.model.dtos.LedgerEntryDTO;
 import org.raflab.studsluzba.model.finance.FinancialObligation;
 import org.raflab.studsluzba.model.finance.LedgerEntry;
 import org.raflab.studsluzba.model.security.AuditLog;
@@ -75,6 +76,14 @@ public class FinanceService {
     @Transactional(readOnly = true)
     public List<LedgerEntry> ledger(Long indeksId) {
         return ledgerRepo.findByStudentIndeksIdOrderByCreatedAtAsc(indeksId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<LedgerEntryDTO> ledgerDto(Long indeksId) {
+        return ledger(indeksId).stream()
+                .map(item -> new LedgerEntryDTO(item.getId(), item.getType().name(), item.getAmountEur(),
+                        item.getDescription(), item.isReversed(), item.getCreatedAt()))
+                .collect(java.util.stream.Collectors.toList());
     }
 
     private LedgerEntry post(StudentIndeks indeks, LedgerEntry.Type type, BigDecimal amount, String description) {

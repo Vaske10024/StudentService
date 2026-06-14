@@ -4,13 +4,13 @@ import { AuthProvider } from './auth/AuthContext';
 import { AppShell } from './components/AppShell';
 import { RequireAuth } from './routes/RequireAuth';
 import { AccountPage } from './pages/AccountPage';
-import { AdminDashboardPage, AdminEntityPage, AdminExamsPage, AdminStudentDetailPage, AdminStudentIndexesPage, AdminStudentNewPage, AdminStudentsPage } from './pages/AdminPages';
+import { AdminDashboardPage, AdminEntityPage, AdminExamPeriodsPage, AdminExamsPage, AdminStudentDetailPage, AdminStudentIndexesPage, AdminStudentNewPage, AdminStudentsPage } from './pages/AdminPages';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { LoginPage } from './pages/LoginPage';
 import { ProfessorDashboardPage, ProfessorExamResultsPage, ProfessorExamsPage, ProfessorPredispitPage, ProfessorSubjectStudentsPage, ProfessorSubjectsPage } from './pages/ProfessorPages';
 import { StudentDashboardPage, StudentExamsPage, StudentGradesPage, StudentPaymentsPage, StudentProfilePage, StudentSubjectsPage } from './pages/StudentPages';
-import { AdminEnrollmentsPage, AdminPaymentsPage, AdminReportsPage, NotificationsPage, StudentRequestsPage } from './pages/ExtendedPages';
+import { AdminEnrollmentsPage, AdminPaymentsPage, AdminReportsPage, AdminRequestsPage, NotificationsPage, StudentRequestsPage } from './pages/ExtendedPages';
 import { AdminProfessorsPage, AdminSubjectsPage } from './pages/AdminCatalogPages';
 
 export function App() {
@@ -25,6 +25,7 @@ export function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/account" element={<AccountPage />} />
+              <Route path="/forbidden" element={<section className="card"><h1>Pristup nije dozvoljen</h1><p>Ulogovani ste, ali nemate potrebnu dozvolu za ovu akciju.</p></section>} />
               <Route path="/settings" element={<Navigate to="/account" replace />} />
 
               <Route element={<RequireAuth roles={['STUDENT']} />}>
@@ -57,12 +58,13 @@ export function App() {
                 <Route path="/admin/subjects" element={<AdminSubjectsPage />} />
                 <Route path="/admin/programs" element={<AdminEntityPage title="Study programs" loader={adminApi.programs} />} />
                 <Route path="/admin/school-years" element={<AdminEntityPage title="School years" loader={adminApi.schoolYears} />} />
-                <Route path="/admin/exam-periods" element={<AdminEntityPage title="Exam periods" loader={adminApi.examPeriods} />} />
+                <Route path="/admin/exam-periods" element={<AdminExamPeriodsPage />} />
                 <Route path="/admin/exams" element={<AdminExamsPage />} />
-                <Route path="/admin/enrollments" element={<AdminEnrollmentsPage />} />
-                <Route path="/admin/payments" element={<AdminPaymentsPage />} />
-                <Route path="/admin/reports" element={<AdminReportsPage />} />
               </Route>
+              <Route element={<RequireAuth roles={['ADMIN']} permissions={['ENROLLMENT_WRITE']} />}><Route path="/admin/enrollments" element={<AdminEnrollmentsPage />} /></Route>
+              <Route element={<RequireAuth roles={['ADMIN']} permissions={['DOCUMENT_DECIDE']} />}><Route path="/admin/requests" element={<AdminRequestsPage />} /></Route>
+              <Route element={<RequireAuth roles={['ADMIN']} permissions={['FINANCE_WRITE']} />}><Route path="/admin/payments" element={<AdminPaymentsPage />} /></Route>
+              <Route element={<RequireAuth roles={['ADMIN']} permissions={['REPORT_EXPORT']} />}><Route path="/admin/reports" element={<AdminReportsPage />} /></Route>
 
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Route>

@@ -9,6 +9,7 @@ import org.raflab.studsluzba.model.dtos.LoginRequest;
 import org.raflab.studsluzba.model.security.UserAccount;
 import org.raflab.studsluzba.security.CurrentUser;
 import org.raflab.studsluzba.services.UserAccountService;
+import org.raflab.studsluzba.services.PermissionService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -31,6 +32,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final CurrentUser currentUser;
     private final UserAccountService userAccountService;
+    private final PermissionService permissionService;
 
     @GetMapping("/csrf")
     public CsrfTokenDTO csrf(CsrfToken token) {
@@ -50,7 +52,7 @@ public class AuthController {
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
 
         UserAccount account = currentUser.account();
-        return new AuthResponseDTO(toDto(account));
+        return new AuthResponseDTO(toDto(account, permissionService.currentPermissions()));
     }
 
     @PostMapping("/logout")
@@ -64,7 +66,7 @@ public class AuthController {
 
     @GetMapping("/me")
     public AuthResponseDTO me() {
-        return new AuthResponseDTO(toDto(currentUser.account()));
+        return new AuthResponseDTO(toDto(currentUser.account(), permissionService.currentPermissions()));
     }
 
     @PostMapping("/password")
@@ -73,6 +75,10 @@ public class AuthController {
     }
 
     public static AuthUserDTO toDto(UserAccount ua) {
+        return toDto(ua, java.util.Collections.emptyList());
+    }
+
+    public static AuthUserDTO toDto(UserAccount ua, java.util.List<String> permissions) {
         if (ua == null) return null;
         return new AuthUserDTO(
                 ua.getId(),
@@ -81,7 +87,9 @@ public class AuthController {
                 ua.isEnabled(),
                 ua.getLinkedStudentPodaci() == null ? null : ua.getLinkedStudentPodaci().getId(),
                 ua.getLinkedStudentIndeks() == null ? null : ua.getLinkedStudentIndeks().getId(),
-                ua.getLinkedNastavnik() == null ? null : ua.getLinkedNastavnik().getId()
+                ua.getLinkedNastavnik() == null ? null : ua.getLinkedNastavnik().getId(),
+                ua.isMustChangePassword(),
+                permissions
         );
     }
 }

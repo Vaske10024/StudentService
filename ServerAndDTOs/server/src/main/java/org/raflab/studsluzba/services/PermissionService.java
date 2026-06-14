@@ -5,6 +5,9 @@ import org.raflab.studsluzba.repositories.security.*;
 import org.raflab.studsluzba.security.CurrentUser;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 @Service @RequiredArgsConstructor
 public class PermissionService {
  private final CurrentUser currentUser;
@@ -14,10 +17,10 @@ public class PermissionService {
  public boolean has(Permission permission){
   UserAccount user=currentUser.account();
   return overrideRepo.findByUserAccountIdAndPermission(user.getId(),permission).map(UserPermissionOverride::isAllowed)
-    .orElseGet(()->roleRepo.existsByRoleAndPermission(user.getRole(),permission)
-      || (permission==Permission.SECURITY_ADMIN && user.getRole()==Role.ADMIN));
+    .orElseGet(()->user.getRole()==Role.ADMIN || roleRepo.existsByRoleAndPermission(user.getRole(),permission));
  }
  public void require(Permission permission){if(!has(permission))throw new AccessDeniedException("Nedostaje dozvola: "+permission);}
+ public List<String> currentPermissions(){return Arrays.stream(Permission.values()).filter(this::has).map(Enum::name).collect(Collectors.toList());}
  public UserPermissionOverride setOverride(Long userId,Permission permission,boolean allowed){
   require(Permission.SECURITY_ADMIN);
   UserPermissionOverride item=overrideRepo.findByUserAccountIdAndPermission(userId,permission).orElseGet(UserPermissionOverride::new);

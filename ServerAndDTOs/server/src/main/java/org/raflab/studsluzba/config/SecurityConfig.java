@@ -77,8 +77,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                 .antMatchers("/api/auth/logout", "/api/auth/me", "/api/auth/password", "/api/me/**").authenticated()
 
-                .antMatchers(HttpMethod.POST, "/api/student/add", "/api/student/saveindeks").hasRole("ADMIN")
-                .antMatchers("/api/student/all", "/api/student/svi", "/api/student/search", "/api/student/fastsearch", "/api/student/emailsearch", "/api/student/podaci/**", "/api/student/indeks/**", "/api/student/indeksi/**").hasRole("ADMIN")
+                .antMatchers(HttpMethod.POST, "/api/student/add", "/api/student/saveindeks", "/api/student/saveindeks/provision").hasRole("ADMIN")
+                .antMatchers("/api/student/all", "/api/student/svi", "/api/student/search", "/api/student/global-search", "/api/student/fastsearch", "/api/student/emailsearch", "/api/student/podaci/**", "/api/student/indeks/**", "/api/student/indeksi/**").hasRole("ADMIN")
                 .antMatchers("/api/student/profile/**", "/api/student/webprofile/**").authenticated()
                 .antMatchers("/api/student/query/**").hasRole("ADMIN")
 
@@ -126,6 +126,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/srednja/**", "/api/visoka/**").hasRole("ADMIN")
                 .antMatchers("/actuator/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
+            .and()
+            .exceptionHandling()
+                .authenticationEntryPoint((request, response, exception) -> response.sendError(401, "Korisnik nije prijavljen."))
+                .accessDeniedHandler((request, response, exception) -> response.sendError(403, "Korisnik nema potrebnu dozvolu."))
             .and()
             .formLogin().disable()
             .httpBasic().disable()

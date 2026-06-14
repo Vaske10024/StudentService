@@ -40,6 +40,14 @@ public interface StudentPodaciRepository extends JpaRepository<StudentPodaci, Lo
                                   @Param("broj") Integer broj,
                                   Pageable pageable);
 
+    @Query("select sp from StudentPodaci sp where " +
+            "lower(concat(concat(sp.ime, ' '), sp.prezime)) like lower(concat('%', :q, '%')) " +
+            "or lower(concat(concat(sp.prezime, ' '), sp.ime)) like lower(concat('%', :q, '%')) " +
+            "or lower(sp.emailFakultetski) like lower(concat('%', :q, '%')) " +
+            "or lower(sp.emailPrivatni) like lower(concat('%', :q, '%')) " +
+            "or exists (select si.id from StudentIndeks si where si.student = sp and lower(si.studProgramOznaka) like lower(concat('%', :q, '%')))")
+    Page<StudentPodaci> globalSearch(@Param("q") String q, Pageable pageable);
+
     // (ostavi postojeće ako ti negde još trebaju)
 
     @Query("select sp from StudentPodaci sp where "

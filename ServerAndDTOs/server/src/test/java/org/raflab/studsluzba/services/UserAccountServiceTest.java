@@ -28,7 +28,7 @@ class UserAccountServiceTest {
     private final UserAccountService service = new UserAccountService(repository, passwordEncoder, currentUser);
 
     @Test
-    void firstIndexCreatesStudentAccountWithFacultyEmailAsInitialPassword() {
+    void firstIndexCreatesStudentAccountWithRandomTemporaryPassword() {
         StudentPodaci student = student();
         StudentIndeks index = new StudentIndeks();
         index.setId(10L);
@@ -36,14 +36,17 @@ class UserAccountServiceTest {
         when(repository.existsByUsername("student@example.edu")).thenReturn(false);
         when(repository.save(any(UserAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        UserAccount account = service.provisionStudentAccount(student, index);
+        UserAccountService.ProvisionResult result = service.provisionStudentAccountWithCredential(student, index);
+        UserAccount account = result.getAccount();
 
         assertThat(account.getUsername()).isEqualTo("student@example.edu");
         assertThat(account.getRole()).isEqualTo(Role.STUDENT);
         assertThat(account.isEnabled()).isTrue();
         assertThat(account.getLinkedStudentPodaci()).isSameAs(student);
         assertThat(account.getLinkedStudentIndeks()).isSameAs(index);
-        assertThat(passwordEncoder.matches("student@example.edu", account.getPasswordHash())).isTrue();
+        assertThat(result.getTemporaryPassword()).isNotBlank().doesNotContain("student@example.edu");
+        assertThat(passwordEncoder.matches(result.getTemporaryPassword(), account.getPasswordHash())).isTrue();
+        assertThat(account.isMustChangePassword()).isTrue();
     }
 
     @Test

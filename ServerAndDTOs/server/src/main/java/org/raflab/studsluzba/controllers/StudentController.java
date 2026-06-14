@@ -10,6 +10,7 @@ import org.raflab.studsluzba.model.dtos.StudentDTO;
 import org.raflab.studsluzba.model.dtos.StudentDashboardDTO;
 import org.raflab.studsluzba.model.dtos.StudentProfileDTO;
 import org.raflab.studsluzba.model.dtos.StudentWebProfileDTO;
+import org.raflab.studsluzba.model.dtos.StudentIndexProvisionDTO;
 import org.raflab.studsluzba.services.StudentProfileService;
 import org.raflab.studsluzba.services.StudentService;
 import org.raflab.studsluzba.security.CurrentUser;
@@ -113,6 +114,11 @@ public class StudentController {
         return studentService.saveIndeks(request);
     }
 
+    @PostMapping(path="/saveindeks/provision")
+    public StudentIndexProvisionDTO saveIndeksProvision(@RequestBody @Valid StudentIndeksRequest request) {
+        return studentService.saveIndeksProvision(request);
+    }
+
     // 5 2023  RN   Ivan stankovic
     //RADI
     @GetMapping(path="/indeks/{id}")
@@ -154,6 +160,13 @@ public class StudentController {
                                    @RequestParam(defaultValue = "0") Integer page,
                                    @RequestParam(defaultValue = "10") Integer size) {
         return studentService.search(ime, prezime, studProgram, godina, broj, page, size);
+    }
+
+    @GetMapping(path="/global-search")
+    public Page<StudentDTO> globalSearch(@RequestParam String q,
+                                         @RequestParam(defaultValue = "0") Integer page,
+                                         @RequestParam(defaultValue = "20") Integer size) {
+        return studentService.globalSearch(q, page, size);
     }
 
 

@@ -50,9 +50,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   const contentType = res.headers.get('content-type') ?? '';
   const body = contentType.includes('application/json') ? await res.json() : undefined;
   if (!res.ok) {
-    if (res.status === 401 || res.status === 403) {
-      window.dispatchEvent(new CustomEvent('auth:forbidden', { detail: { status: res.status, body } }));
-    }
+    if (res.status === 401) window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { status: res.status, body } }));
+    if (res.status === 403) window.dispatchEvent(new CustomEvent('auth:forbidden', { detail: { status: res.status, body } }));
     throw new ApiError(res.status, body);
   }
   return body as T;
@@ -60,6 +59,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
 export function resetCsrf(): void {
   csrfToken = null;
+}
+
+export function apiUrl(path: string): string {
+  return `${API_BASE}${path}`;
 }
 
 export function apiErrorMessage(error: unknown, fallback = 'Request failed.'): string {

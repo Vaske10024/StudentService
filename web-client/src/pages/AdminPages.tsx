@@ -41,6 +41,19 @@ function pageRows(data: unknown): Record<string, unknown>[] {
 export function AdminDashboardPage() {
   const programs = useApi(adminApi.programs, []);
   const students = useApi(() => adminApi.students(0, 5), []);
+  const subjects = useApi(adminApi.subjects, []);
+  const years = useApi(adminApi.schoolYears, []);
+  const realizations = useApi(() => adminApi.realizations(), []);
+  const assignments = useApi(adminApi.assignments, []);
+  const periods = useApi(adminApi.examPeriods, []);
+  const checklist = [
+    ['Active school year', asRows(years.data).some((item) => item.aktivna === true)],
+    ['Study programs', asRows(programs.data).length > 0],
+    ['Subjects', asRows(subjects.data).length > 0],
+    ['Subject realizations', asRows(realizations.data).length > 0],
+    ['Professor assignments', asRows(assignments.data).length > 0],
+    ['Exam periods', asRows(periods.data).length > 0]
+  ] as const;
   return (
     <section>
       <h1>Admin dashboard</h1>
@@ -49,6 +62,7 @@ export function AdminDashboardPage() {
         <article className="card"><h2>Study programs</h2>{programs.loading ? <Loading /> : <p className="metric">{pageRows(programs.data).length}</p>}</article>
         <article className="card"><h2>Security</h2><p className="muted">Admin routes call protected backend endpoints only.</p></article>
       </div>
+      <section className="card"><h2>Academic setup checklist</h2><p className="muted">Pipeline readiness for the active academic year.</p><div className="gridCards">{checklist.map(([label, ready]) => <article className="metricCard" key={label}><span>{label}</span><strong>{ready ? 'Ready' : 'Missing'}</strong></article>)}</div></section>
     </section>
   );
 }
@@ -57,7 +71,7 @@ export function AdminStudentsPage() {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const loader = () => query.trim()
-    ? apiRequest<unknown>(`/api/student/search?ime=${encodeURIComponent(query.trim())}&prezime=${encodeURIComponent(query.trim())}&page=${page}&size=20`)
+    ? apiRequest<unknown>(`/api/student/global-search?q=${encodeURIComponent(query.trim())}&page=${page}&size=20`)
     : adminApi.students(page, 20);
   const { data, loading, error, reload } = useApi(loader, [query, page]);
   const totalPages = typeof data === 'object' && data !== null && 'totalPages' in data ? Number((data as { totalPages?: number }).totalPages ?? 1) : 1;
@@ -65,7 +79,7 @@ export function AdminStudentsPage() {
     <section className="card">
       <header className="pageHeader"><h1>Students</h1><Link className="buttonLink" to="/admin/students/new">New student</Link></header>
       <form className="toolbar" onSubmit={(e) => { e.preventDefault(); setPage(0); void reload(); }}>
-        <input placeholder="Search by name" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <input placeholder="Search by name, email or program" value={query} onChange={(e) => setQuery(e.target.value)} />
         <button type="submit">Search</button>
       </form>
       {loading && <Loading />}
@@ -184,7 +198,7 @@ export function AdminStudentDetailPage() {
     event.preventDefault();
     setActionError(null);
     try {
-      const createdId = await adminApi.createIndex({
+      const provision = await adminApi.createIndex({
         godina: Number(indexForm.godina),
         studProgramOznaka: indexForm.studProgramOznaka,
         nacinFinansiranja: indexForm.nacinFinansiranja,
@@ -192,8 +206,10 @@ export function AdminStudentDetailPage() {
         vaziOd: indexForm.vaziOd,
         student: { id: Number(id) }
       });
-      setActionMessage(`Index created with id ${createdId}. The student can now log in using their faculty email as both username and temporary password.`);
-      setIndexId(String(createdId));
+      setActionMessage(provision.accountCreated
+        ? `Index ${provision.indexId} and account ${provision.username} created. One-time temporary password: ${provision.temporaryPassword}`
+        : `Index ${provision.indexId} created and existing account ${provision.username} relinked.`);
+      setIndexId(String(provision.indexId));
       setIndexOpen(false);
       await indexes.reload();
     } catch (err) {
@@ -303,7 +319,11 @@ export function AdminStudentIndexesPage() {
 
 export function AdminExamsPage() {
   const periods = useApi(adminApi.examPeriods, []);
+  const assignments = useApi(adminApi.assignments, []);
   const [periodId, setPeriodId] = useState('');
+  const [form, setForm] = useState({ drziPredmetId: '', datum: '', vreme: '09:00' });
+  const [message, setMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     const firstPeriod = asRows(periods.data)[0];
@@ -315,9 +335,35 @@ export function AdminExamsPage() {
     [periodId]
   );
 
+  async function createExam(event: FormEvent) {
+    event.preventDefault(); setActionError(null); setMessage(null);
+    try {
+      await adminApi.createExam({ rokId: Number(periodId), drziPredmetId: Number(form.drziPredmetId), datum: form.datum, vreme: form.vreme });
+      setMessage('Ispit je kreiran. Studentima će biti vidljiv prema pravilima roka.');
+      await exams.reload();
+    } catch (error) { setActionError(apiErrorMessage(error, 'Kreiranje ispita nije uspelo.')); }
+  }
+
+  async function lockExam(id: unknown) {
+    if (!window.confirm('Zaključati rezultate ovog ispita?')) return;
+    try { await adminApi.lockExam(String(id)); await exams.reload(); }
+    catch (error) { setActionError(apiErrorMessage(error, 'Zaključavanje nije uspelo.')); }
+  }
+  async function editExam(row: Record<string, unknown>) {
+    const datum = window.prompt('Novi datum ispita (YYYY-MM-DD)', String(row.datumOdrzavanja ?? ''));
+    if (!datum) return;
+    const vreme = window.prompt('Novo vreme ispita (HH:mm)', String(row.vremePocetka ?? '').slice(0, 5));
+    if (!vreme) return;
+    try { await adminApi.updateExamTime(String(row.id), { datum, vreme }); setMessage('Termin ispita je izmenjen.'); await exams.reload(); }
+    catch (error) { setActionError(apiErrorMessage(error, 'Izmena termina nije uspela.')); }
+  }
+
+  const columns = [...examColumns, { header: 'Action', render: (row: Record<string, unknown>) => <div className="buttonGroup"><button type="button" className="secondaryButton" disabled={row.zakljucen === true} onClick={() => void editExam(row)}>Edit time</button><button type="button" className="secondaryButton" disabled={row.zakljucen === true} onClick={() => void lockExam(row.id)}>Lock</button></div> }];
+
   return (
     <section className="card">
       <h1>Exams</h1>
+      {message && <p className="success">{message}</p>}{actionError && <ErrorMessage message={actionError} />}
       {periods.loading && <Loading />}
       {periods.error && <ErrorMessage message={periods.error} />}
       {!periods.loading && !periods.error && (
@@ -335,11 +381,64 @@ export function AdminExamsPage() {
           </label>
           {exams.loading && <Loading />}
           {exams.error && <ErrorMessage message={exams.error} />}
-          {!exams.loading && !exams.error && <DataTable rows={asRows(exams.data)} columns={examColumns} empty="No exams in the selected period." />}
+          <form className="formGrid" onSubmit={createExam}>
+            <label>Teaching assignment *<select required value={form.drziPredmetId} onChange={(e) => setForm({ ...form, drziPredmetId: e.target.value })}><option value="">Select</option>{asRows(assignments.data).map((item) => <option key={String(item.id)} value={String(item.id)}>{`${pick(item, ['predmetNaziv'])} - ${pick(item, ['nastavnikImePrezime'])}`}</option>)}</select></label>
+            <label>Exam date *<input required type="date" value={form.datum} onChange={(e) => setForm({ ...form, datum: e.target.value })} /></label>
+            <label>Start time *<input required type="time" value={form.vreme} onChange={(e) => setForm({ ...form, vreme: e.target.value })} /></label>
+            <button disabled={!periodId}>Create exam</button>
+          </form>
+          {!exams.loading && !exams.error && <DataTable rows={asRows(exams.data)} columns={columns} empty="No exams in the selected period." />}
         </>
       )}
     </section>
   );
+}
+
+export function AdminExamPeriodsPage() {
+  const periods = useApi(adminApi.examPeriods, []);
+  const schoolYears = useApi(adminApi.schoolYears, []);
+  const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
+  const [form, setForm] = useState({ start: '', end: '', registrationStart: '', registrationEnd: '', cancellationEnd: '', skolskaGodinaId: '', active: true });
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  function edit(period?: Record<string, unknown>) {
+    setEditing(period ?? {});
+    setForm(period ? {
+      start: String(period.datumPocetka ?? ''), end: String(period.datumZavrsetka ?? ''),
+      registrationStart: String(period.registrationStart ?? '').slice(0, 16), registrationEnd: String(period.registrationEnd ?? '').slice(0, 16),
+      cancellationEnd: String(period.cancellationEnd ?? '').slice(0, 16), skolskaGodinaId: String(period.skolskaGodinaId ?? ''), active: period.active === true
+    } : { start: '', end: '', registrationStart: '', registrationEnd: '', cancellationEnd: '', skolskaGodinaId: '', active: true });
+  }
+  async function submit(event: FormEvent) {
+    event.preventDefault(); setError(null);
+    try {
+      const body = { ...form, skolskaGodinaId: form.skolskaGodinaId ? Number(form.skolskaGodinaId) : undefined };
+      if (editing?.id) await adminApi.updateExamPeriod(String(editing.id), body); else await adminApi.createExamPeriod(body);
+      setEditing(null); setMessage('Ispitni rok je sačuvan.'); await periods.reload();
+    } catch (err) { setError(apiErrorMessage(err, 'Čuvanje ispitnog roka nije uspelo.')); }
+  }
+  const columns = [
+    { header: 'Period', render: (row: Record<string, unknown>) => `${pick(row, ['datumPocetka'])} - ${pick(row, ['datumZavrsetka'])}` },
+    { header: 'Registration', render: (row: Record<string, unknown>) => `${pick(row, ['registrationStart'])} - ${pick(row, ['registrationEnd'])}` },
+    { header: 'Cancellation end', render: (row: Record<string, unknown>) => pick(row, ['cancellationEnd']) },
+    { header: 'Exams', render: (row: Record<string, unknown>) => pick(row, ['examCount']) },
+    { header: 'Ready', render: (row: Record<string, unknown>) => row.ready ? <span className="success">Ready</span> : <span className="error">Not ready: check activity, windows and exams</span> },
+    { header: 'Action', render: (row: Record<string, unknown>) => <button type="button" className="secondaryButton" onClick={() => edit(row)}>Edit</button> }
+  ];
+  return <section className="card"><header className="pageHeader"><h1>Exam periods</h1><button type="button" onClick={() => edit()}>New period</button></header>
+    {message && <p className="success">{message}</p>}{error && <ErrorMessage message={error} />}
+    {periods.loading ? <Loading /> : <DataTable rows={asRows(periods.data)} columns={columns} empty="No exam periods. Create one before adding exams." />}
+    {editing && <Modal title={editing.id ? 'Edit exam period' : 'New exam period'} onClose={() => setEditing(null)}><form className="formGrid" onSubmit={submit}>
+      <label>Start *<input required type="date" value={form.start} onChange={(e) => setForm({ ...form, start: e.target.value })} /></label>
+      <label>End *<input required type="date" value={form.end} onChange={(e) => setForm({ ...form, end: e.target.value })} /></label>
+      <label>Registration start *<input required type="datetime-local" value={form.registrationStart} onChange={(e) => setForm({ ...form, registrationStart: e.target.value })} /></label>
+      <label>Registration end *<input required type="datetime-local" value={form.registrationEnd} onChange={(e) => setForm({ ...form, registrationEnd: e.target.value })} /></label>
+      <label>Cancellation end *<input required type="datetime-local" value={form.cancellationEnd} onChange={(e) => setForm({ ...form, cancellationEnd: e.target.value })} /></label>
+      <label>School year<select value={form.skolskaGodinaId} onChange={(e) => setForm({ ...form, skolskaGodinaId: e.target.value })}><option value="">Active school year</option>{asRows(schoolYears.data).map((year) => <option key={String(year.id)} value={String(year.id)}>{pick(year, ['godina', 'oznaka'])}</option>)}</select></label>
+      <label className="checkLabel"><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> Active</label><button>Save period</button>
+    </form></Modal>}
+  </section>;
 }
 
 export function AdminEntityPage({ title, loader }: { title: string; loader: () => Promise<unknown> }) {
