@@ -198,3 +198,134 @@ export function AdminSubjectsPage() {
     </section>
   );
 }
+
+export function AdminProgramsPage() {
+  const programs = useApi(adminApi.programs, []);
+  const studyTypes = useApi(adminApi.studyTypes, []);
+  const [typeEditing, setTypeEditing] = useState<Record<string, unknown> | null>(null);
+  const [typeForm, setTypeForm] = useState({ skracenica: '', puniNaziv: '' });
+  const [form, setForm] = useState({
+    oznaka: '', naziv: '', godinaAkreditacije: String(new Date().getFullYear()), zvanje: '',
+    trajanjeGodina: '4', ukupnoEspb: '240', vrstaStudijaId: ''
+  });
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function create(event: FormEvent) {
+    event.preventDefault();
+    setError(null);
+    try {
+      const id = await adminApi.createProgram({
+        ...form,
+        godinaAkreditacije: Number(form.godinaAkreditacije),
+        trajanjeGodina: Number(form.trajanjeGodina),
+        ukupnoEspb: Number(form.ukupnoEspb),
+        vrstaStudijaId: Number(form.vrstaStudijaId)
+      });
+      setMessage(`Study program created with id ${id}.`);
+      setForm({ ...form, oznaka: '', naziv: '', zvanje: '' });
+      await programs.reload();
+    } catch (err) { setError(apiErrorMessage(err, 'Study program creation failed.')); }
+  }
+
+  function editType(type?: Record<string, unknown>) {
+    setTypeEditing(type ?? {});
+    setTypeForm(type ? { skracenica: String(type.skracenica ?? ''), puniNaziv: String(type.puniNaziv ?? '') } : { skracenica: '', puniNaziv: '' });
+    setError(null);
+  }
+
+  async function saveType(event: FormEvent) {
+    event.preventDefault();
+    setError(null);
+    try {
+      if (typeEditing?.id) await adminApi.updateStudyType(String(typeEditing.id), typeForm);
+      else await adminApi.createStudyType(typeForm);
+      setTypeEditing(null);
+      setMessage('Study type saved.');
+      await studyTypes.reload();
+    } catch (err) { setError(apiErrorMessage(err, 'Study type could not be saved.')); }
+  }
+
+  async function deleteType(type: Record<string, unknown>) {
+    if (!window.confirm(`Delete study type ${String(type.skracenica ?? '')}?`)) return;
+    setError(null);
+    try {
+      await adminApi.deleteStudyType(String(type.id));
+      setMessage('Study type deleted.');
+      await studyTypes.reload();
+    } catch (err) { setError(apiErrorMessage(err, 'Study type could not be deleted.')); }
+  }
+
+  const columns = [
+    { header: 'Code', render: (row: Record<string, unknown>) => pick(row, ['oznaka']) },
+    { header: 'Program', render: (row: Record<string, unknown>) => pick(row, ['naziv']) },
+    { header: 'Accreditation', render: (row: Record<string, unknown>) => pick(row, ['godinaAkreditacije']) },
+    { header: 'Duration', render: (row: Record<string, unknown>) => `${pick(row, ['trajanjeGodina'])} years / ${pick(row, ['trajanjeSemestara'])} semesters` },
+    { header: 'ECTS', render: (row: Record<string, unknown>) => pick(row, ['ukupnoEspb']) }
+  ];
+  return <section className="stack">
+    <section className="card"><header className="pageHeader"><div><h1>Study types</h1><p className="muted">Manage types before creating study programs.</p></div><button type="button" onClick={() => editType()}>New study type</button></header>
+      <DataTable rows={asRows(studyTypes.data)} columns={[
+        { header: 'Code', render: (row) => pick(row, ['skracenica']) },
+        { header: 'Name', render: (row) => pick(row, ['puniNaziv']) },
+        { header: 'Actions', render: (row) => <div className="buttonGroup"><button type="button" className="secondaryButton" onClick={() => editType(row)}>Edit</button><button type="button" className="secondaryButton" onClick={() => void deleteType(row)}>Delete</button></div> }
+      ]} empty="No study types. Create one before adding a program." />
+    </section>
+    <section className="card"><h1>Study programs</h1>{message && <p className="success">{message}</p>}{error && <ErrorMessage message={error} />}
+      <DataTable rows={asRows(programs.data)} columns={columns} />
+    </section>
+    <section className="card"><h2>Create study program</h2><form className="formGrid" onSubmit={create}>
+      <label>Code *<input required value={form.oznaka} onChange={(e) => setForm({ ...form, oznaka: e.target.value })} /></label>
+      <label>Name *<input required value={form.naziv} onChange={(e) => setForm({ ...form, naziv: e.target.value })} /></label>
+      <label>Accreditation year *<input required type="number" value={form.godinaAkreditacije} onChange={(e) => setForm({ ...form, godinaAkreditacije: e.target.value })} /></label>
+      <label>Qualification *<input required value={form.zvanje} onChange={(e) => setForm({ ...form, zvanje: e.target.value })} /></label>
+      <label>Duration in years *<input required type="number" min="1" max="8" value={form.trajanjeGodina} onChange={(e) => setForm({ ...form, trajanjeGodina: e.target.value })} /></label>
+      <label>Total ECTS *<input required type="number" min="1" value={form.ukupnoEspb} onChange={(e) => setForm({ ...form, ukupnoEspb: e.target.value })} /></label>
+      <label>Study type *<select required value={form.vrstaStudijaId} onChange={(e) => setForm({ ...form, vrstaStudijaId: e.target.value })}><option value="">Select</option>{asRows(studyTypes.data).map((type) => <option key={String(type.id)} value={String(type.id)}>{`${pick(type, ['skracenica'])} - ${pick(type, ['puniNaziv'])}`}</option>)}</select></label>
+      <button type="submit">Create program</button>
+    </form></section>
+    {typeEditing && <Modal title={typeEditing.id ? 'Edit study type' : 'New study type'} onClose={() => setTypeEditing(null)}><form className="formGrid" onSubmit={saveType}>
+      <label>Code *<input required value={typeForm.skracenica} onChange={(e) => setTypeForm({ ...typeForm, skracenica: e.target.value })} /></label>
+      <label>Full name *<input required value={typeForm.puniNaziv} onChange={(e) => setTypeForm({ ...typeForm, puniNaziv: e.target.value })} /></label>
+      <button type="submit">Save study type</button>
+    </form></Modal>}
+  </section>;
+}
+
+export function AdminSchoolYearsPage() {
+  const years = useApi(adminApi.schoolYears, []);
+  const [oznaka, setOznaka] = useState('');
+  const [aktivna, setAktivna] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function create(event: FormEvent) {
+    event.preventDefault();
+    setError(null);
+    try {
+      const id = await adminApi.createSchoolYear({ oznaka, aktivna });
+      setMessage(`School year created with id ${id}.`);
+      setOznaka('');
+      await years.reload();
+    } catch (err) { setError(apiErrorMessage(err, 'School year creation failed.')); }
+  }
+
+  async function activate(id: unknown) {
+    setError(null);
+    try {
+      await adminApi.activateSchoolYear(String(id));
+      setMessage('Active school year changed.');
+      await years.reload();
+    } catch (err) { setError(apiErrorMessage(err, 'School year activation failed.')); }
+  }
+
+  const columns = [
+    { header: 'School year', render: (row: Record<string, unknown>) => pick(row, ['godina']) },
+    { header: 'Status', render: (row: Record<string, unknown>) => row.aktivna ? 'Active' : 'Inactive' },
+    { header: 'Action', render: (row: Record<string, unknown>) => <button type="button" disabled={row.aktivna === true} onClick={() => void activate(row.id)}>Activate</button> }
+  ];
+  return <section className="stack">
+    <section className="card"><h1>School years</h1>{message && <p className="success">{message}</p>}{error && <ErrorMessage message={error} />}<DataTable rows={asRows(years.data)} columns={columns} /></section>
+    <section className="card"><h2>Create school year</h2><form className="formGrid" onSubmit={create}><label>Label *<input required placeholder="2026/2027" value={oznaka} onChange={(e) => setOznaka(e.target.value)} /></label><label className="checkLabel"><input type="checkbox" checked={aktivna} onChange={(e) => setAktivna(e.target.checked)} /> Activate immediately</label><button type="submit">Create school year</button></form></section>
+  </section>;
+}

@@ -173,13 +173,16 @@ export function AdminStudentDetailPage() {
   const [indexId, setIndexId] = useState('');
   const [indexOpen, setIndexOpen] = useState(false);
   const [enrollOpen, setEnrollOpen] = useState(false);
+  const [recognizeOpen, setRecognizeOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [indexForm, setIndexForm] = useState({ godina: String(new Date().getFullYear()), studProgramOznaka: '', nacinFinansiranja: 'BUDZET', vaziOd: new Date().toISOString().slice(0, 10) });
   const [studyYear, setStudyYear] = useState('1');
+  const [recognition, setRecognition] = useState({ predmetId: '', ocena: '8', napomena: '' });
   const profile = useApi(() => adminApi.studentDetails(id), [id]);
   const indexes = useApi(() => adminApi.studentIndexes(id), [id]);
   const programs = useApi(adminApi.programs, []);
+  const subjects = useApi(adminApi.subjects, []);
 
   useEffect(() => {
     const rows = asRows(indexes.data);
@@ -241,6 +244,20 @@ export function AdminStudentDetailPage() {
     }
   }
 
+  async function recognizeSubject(event: FormEvent) {
+    event.preventDefault();
+    setActionError(null);
+    try {
+      await adminApi.recognizeSubject(indexId, recognition.predmetId, Number(recognition.ocena), recognition.napomena);
+      setActionMessage('Subject recognized and included in passed-subject history.');
+      setRecognition({ predmetId: '', ocena: '8', napomena: '' });
+      setRecognizeOpen(false);
+      await dashboard.reload();
+    } catch (err) {
+      setActionError(apiErrorMessage(err, 'Subject recognition failed.'));
+    }
+  }
+
   if (profile.loading || indexes.loading) return <Loading />;
   if (profile.error) return <ErrorMessage message={profile.error} />;
   if (indexes.error) return <ErrorMessage message={indexes.error} />;
@@ -266,7 +283,7 @@ export function AdminStudentDetailPage() {
               ))}
             </select>
           </label>
-          <div className="buttonGroup"><button type="button" onClick={() => { setActionError(null); setIndexOpen(true); }}>Create index</button><button type="button" className="secondaryButton" disabled={!indexId} onClick={() => { setActionError(null); setEnrollOpen(true); }}>Enroll study year</button><button type="button" className="secondaryButton" disabled={!indexId} onClick={() => void syncSubjects()}>Sync current subjects</button></div>
+          <div className="buttonGroup"><button type="button" onClick={() => { setActionError(null); setIndexOpen(true); }}>Create index</button><button type="button" className="secondaryButton" disabled={!indexId} onClick={() => { setActionError(null); setEnrollOpen(true); }}>Enroll study year</button><button type="button" className="secondaryButton" disabled={!indexId} onClick={() => void syncSubjects()}>Sync current subjects</button><button type="button" className="secondaryButton" disabled={!indexId} onClick={() => { setActionError(null); setRecognizeOpen(true); }}>Recognize subject</button></div>
         </div>
       </header>
       {actionMessage && <p className="success">{actionMessage}</p>}
@@ -302,6 +319,14 @@ export function AdminStudentDetailPage() {
         <form className="formGrid" onSubmit={enrollStudyYear}>
           <label>Study year *<select required value={studyYear} onChange={(e) => setStudyYear(e.target.value)}>{[1,2,3,4].map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
           {actionError && <p className="error">{actionError}</p>}<button type="submit">Enroll and assign subjects</button>
+        </form>
+      </Modal>}
+      {recognizeOpen && <Modal title="Recognize transferred subject" onClose={() => setRecognizeOpen(false)}>
+        <form className="formGrid" onSubmit={recognizeSubject}>
+          <label>Subject *<select required value={recognition.predmetId} onChange={(e) => setRecognition({ ...recognition, predmetId: e.target.value })}><option value="">Select</option>{asRows(subjects.data).map((subject) => <option key={String(subject.id)} value={String(subject.id)}>{`${pick(subject, ['sifra'])} - ${pick(subject, ['naziv'])}`}</option>)}</select></label>
+          <label>Grade *<input required type="number" min="6" max="10" value={recognition.ocena} onChange={(e) => setRecognition({ ...recognition, ocena: e.target.value })} /></label>
+          <label>Note<textarea required value={recognition.napomena} onChange={(e) => setRecognition({ ...recognition, napomena: e.target.value })} /></label>
+          <button type="submit">Recognize subject</button>
         </form>
       </Modal>}
     </section>
@@ -358,7 +383,7 @@ export function AdminExamsPage() {
     catch (error) { setActionError(apiErrorMessage(error, 'Izmena termina nije uspela.')); }
   }
 
-  const columns = [...examColumns, { header: 'Action', render: (row: Record<string, unknown>) => <div className="buttonGroup"><button type="button" className="secondaryButton" disabled={row.zakljucen === true} onClick={() => void editExam(row)}>Edit time</button><button type="button" className="secondaryButton" disabled={row.zakljucen === true} onClick={() => void lockExam(row.id)}>Lock</button></div> }];
+  const columns = [...examColumns, { header: 'Action', render: (row: Record<string, unknown>) => <div className="buttonGroup"><Link to={`/admin/exams/${String(row.id)}/results`}>Results</Link><button type="button" className="secondaryButton" disabled={row.zakljucen === true} onClick={() => void editExam(row)}>Edit time</button><button type="button" className="secondaryButton" disabled={row.zakljucen === true} onClick={() => void lockExam(row.id)}>Lock</button></div> }];
 
   return (
     <section className="card">

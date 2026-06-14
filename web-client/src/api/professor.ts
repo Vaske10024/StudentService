@@ -9,6 +9,8 @@ export const professorApi = {
   updateResult: (body: unknown) => apiRequest<number>('/api/ispit/prijava/rezultat', { method: 'PATCH', body: JSON.stringify(body) }),
   recordAttendance: (body: unknown) => apiRequest<number>('/api/ispit/izlazak', { method: 'POST', body: JSON.stringify(body) }),
   lockExam: (examId: string | number) => apiRequest(`/api/ispit/${examId}/zakljucaj`, { method: 'PATCH' }),
+  voidRegistration: (id: string | number, reason: string) =>
+    apiRequest(`/api/ispit/prijava/${id}/ponisti`, { method: 'PATCH', body: JSON.stringify({ reason }) }),
   preExamDefinitions: (predmetId: string | number, skolskaGodinaId: string | number) =>
     apiRequest<Record<string, unknown>[]>(`/api/predispit/admin/definicije?predmetId=${predmetId}&skolskaGodinaId=${skolskaGodinaId}`),
   createPreExamDefinition: (body: unknown) => apiRequest<number>('/api/predispit/admin/definicija', { method: 'POST', body: JSON.stringify(body) }),

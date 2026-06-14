@@ -62,7 +62,8 @@ public interface IspitQueryRepository extends CrudRepository<PrijavaIspita, Long
     List<PrijavaIspita> activeRegistrationsForStudent(@Param("studentIndeksId") Long studentIndeksId);
 
     @Query("select pi from PrijavaIspita pi " +
-            "where pi.student.id = :studentIndeksId and (pi.daLiJeIzasao = true or pi.ponisteno = true or pi.priznatSDrugogFakulteta = true) " +
+            "where pi.student.id = :studentIndeksId and (pi.daLiJeIzasao = true or pi.ponisteno = true " +
+            "or pi.priznatSDrugogFakulteta = true or pi.status = org.raflab.studsluzba.model.ispiti.PrijavaStatus.ODJAVLJEN) " +
             "order by pi.datumPrijave desc")
     List<PrijavaIspita> previousAttemptsForStudent(@Param("studentIndeksId") Long studentIndeksId);
 
@@ -76,7 +77,8 @@ public interface IspitQueryRepository extends CrudRepository<PrijavaIspita, Long
     @Query("select case when count(pi)>0 then true else false end from PrijavaIspita pi " +
             "where pi.student.id = :studentIndeksId " +
             "and (pi.predmet.id = :predmetId or pi.ispit.drziPredmet.predmet.id = :predmetId) " +
-            "and pi.ponisteno = false and pi.ocena >= 6")
+            "and pi.ponisteno = false and pi.ocena >= 6 " +
+            "and (pi.daLiJeIzasao = true or pi.priznatSDrugogFakulteta = true)")
     boolean existsPassedSubject(@Param("studentIndeksId") Long studentIndeksId,
                                 @Param("predmetId") Long predmetId);
 
@@ -86,11 +88,14 @@ public interface IspitQueryRepository extends CrudRepository<PrijavaIspita, Long
     boolean existsRecognizedSubject(@Param("studentIndeksId") Long studentIndeksId,
                                     @Param("predmetId") Long predmetId);
 
-    @Query("select avg(pi.ocena) from PrijavaIspita pi where pi.student.id = :studentIndeksId and pi.ponisteno = false and pi.ocena between 6 and 10")
+    @Query("select avg(pi.ocena) from PrijavaIspita pi where pi.student.id = :studentIndeksId " +
+            "and pi.ponisteno = false and pi.ocena between 6 and 10 " +
+            "and (pi.daLiJeIzasao = true or pi.priznatSDrugogFakulteta = true)")
     Double averagePassedGrade(@Param("studentIndeksId") Long studentIndeksId);
 
     @Query("select pi from PrijavaIspita pi where pi.student.id = :studentIndeksId "
-            + "and pi.ponisteno = false and pi.ocena between 6 and 10")
+            + "and pi.ponisteno = false and pi.ocena between 6 and 10 "
+            + "and (pi.daLiJeIzasao = true or pi.priznatSDrugogFakulteta = true)")
     List<PrijavaIspita> passedAttemptsForStudent(@Param("studentIndeksId") Long studentIndeksId);
 
     List<PrijavaIspita> findByIspitId(Long ispitId);

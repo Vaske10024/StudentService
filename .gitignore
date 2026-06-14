@@ -50,3 +50,5 @@ temp/
 coverage/
 **/surefire-reports/
 **/failsafe-reports/
+**/playwright-report/
+**/test-results/

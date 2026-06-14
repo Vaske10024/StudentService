@@ -78,6 +78,11 @@ public class StudyYearEnrollmentService {
         StudentIndeks linked = requireStudentIndeks();
         StudentIndeks indeks = indeksRepo.findByIdForUpdate(linked.getId());
         if (indeks == null) throw ApiException.notFound("Indeks ne postoji.");
+        if (requestRepo.existsByStudentIndeksIdAndTargetSchoolYearIdAndStatusIn(
+                indeks.getId(), dto.getTargetSchoolYearId(), ACTIVE_STATUSES)) {
+            throw ApiException.conflict("DUPLICATE_ACTIVE_YEAR_REQUEST",
+                    "Vec postoji aktivan zahtev za ciljnu skolsku godinu.");
+        }
 
         StudyYearEnrollmentEligibilityDTO eligibility = eligibility(indeks);
         if (!eligibility.isCanSubmit() || eligibility.getTargetSchoolYear() == null) {
@@ -93,12 +98,6 @@ public class StudyYearEnrollmentService {
             throw ApiException.conflict("INVALID_ENROLLMENT_REQUEST_TYPE",
                     "Tip zahteva mora odgovarati trenutno izracunatom uslovu.");
         }
-        if (requestRepo.existsByStudentIndeksIdAndTargetSchoolYearIdAndStatusIn(
-                indeks.getId(), dto.getTargetSchoolYearId(), ACTIVE_STATUSES)) {
-            throw ApiException.conflict("DUPLICATE_ACTIVE_YEAR_REQUEST",
-                    "Vec postoji aktivan zahtev za ciljnu skolsku godinu.");
-        }
-
         StudyYearEnrollmentRequest request = new StudyYearEnrollmentRequest();
         request.setStudentIndeks(indeks);
         request.setCurrentSchoolYear(requireSchoolYear(eligibility.getCurrentSchoolYear().getId()));

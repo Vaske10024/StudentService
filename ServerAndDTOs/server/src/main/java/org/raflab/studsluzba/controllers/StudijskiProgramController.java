@@ -1,12 +1,19 @@
 package org.raflab.studsluzba.controllers;
 
 import lombok.RequiredArgsConstructor;
+import org.raflab.studsluzba.model.VrstaStudija;
+import org.raflab.studsluzba.model.dtos.StudijskiProgramCreateRequest;
 import org.raflab.studsluzba.model.dtos.StudijskiProgramDTO;
+import org.raflab.studsluzba.model.dtos.VrstaStudijaRequest;
 import org.raflab.studsluzba.model.ispiti.StudijskiProgram;
 import org.raflab.studsluzba.repositories.StudijskiProgramRepository;
+import org.raflab.studsluzba.repositories.VrstaStudijaRepository;
+import org.raflab.studsluzba.services.StudijskiProgramAdminService;
+import org.raflab.studsluzba.services.VrstaStudijaAdminService;
 import org.raflab.studsluzba.utils.EntityMappers;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -16,7 +23,35 @@ import java.util.stream.StreamSupport;
 @RequiredArgsConstructor
 public class StudijskiProgramController {
     private final StudijskiProgramRepository repo;
+    private final VrstaStudijaRepository vrstaRepo;
+    private final StudijskiProgramAdminService adminService;
+    private final VrstaStudijaAdminService studyTypeAdminService;
     private final EntityMappers entityMappers;
+
+    @PostMapping
+    public Long create(@RequestBody @Valid StudijskiProgramCreateRequest request) {
+        return adminService.create(request);
+    }
+
+    @GetMapping("/vrste")
+    public Iterable<VrstaStudija> studyTypes() {
+        return vrstaRepo.findAll();
+    }
+
+    @PostMapping("/vrste")
+    public Long createStudyType(@RequestBody @Valid VrstaStudijaRequest request) {
+        return studyTypeAdminService.create(request);
+    }
+
+    @PutMapping("/vrste/{id}")
+    public void updateStudyType(@PathVariable Long id, @RequestBody @Valid VrstaStudijaRequest request) {
+        studyTypeAdminService.update(id, request);
+    }
+
+    @DeleteMapping("/vrste/{id}")
+    public void deleteStudyType(@PathVariable Long id) {
+        studyTypeAdminService.delete(id);
+    }
 
     @GetMapping("/all/sorted")
     public List<StudijskiProgramDTO> allSorted() {

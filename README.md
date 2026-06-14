@@ -231,6 +231,31 @@ npm run build
 
 Set `VITE_API_BASE_URL` if the API is not served from the same origin.
 
+## Full study lifecycle test pipeline
+
+The repository includes an isolated Spring/H2 lifecycle integration pipeline and a Playwright role-route smoke suite. It creates an `E2E_TEST_<UUID>` four-year program, simulates exam attempts and progression, verifies regular/conditional/renewal enrollment, checks negative rules and duplicate prevention, and contracts critical backend flows to frontend routes/API helpers.
+
+From `ServerAndDTOs/`:
+
+```powershell
+$env:JAVA_HOME='C:\Users\gamek\.jdks\ms-11.0.30'
+.\mvnw.cmd test
+```
+
+From `web-client/`:
+
+```powershell
+npm ci
+npx playwright install chromium
+npm run lint
+npm run e2e
+npm run e2e:live
+```
+
+`npm run e2e:live` starts an isolated Spring/H2 backend and verifies real ADMIN, STUDENT, and PROFESSOR browser login and role routes. Detailed coverage, frontend availability map, fixes, and limitations: [`docs/E2E_STUDY_PIPELINE_TESTS.md`](docs/E2E_STUDY_PIPELINE_TESTS.md).
+
+Detailed step-by-step walkthrough of the four-year Spring lifecycle test: [`docs/FULL_FOUR_YEAR_TEST_WALKTHROUGH.md`](docs/FULL_FOUR_YEAR_TEST_WALKTHROUGH.md).
+
 ## Roles
 
 The only user-facing roles are:

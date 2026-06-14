@@ -1,0 +1,251 @@
+    Pregledaj detaljno ceo projekat i napravi kompletan pipeline test za sistem studentske službe. Ne želim samo male unit testove, nego realnu simulaciju studiranja kroz više školskih godina, sa proverom da li su sve važne funkcionalnosti dostupne i iz frontenda.
+
+    Kontekst projekta:
+    - Backend je Spring Boot u ServerAndDTOs/server
+    - DTO modul je ServerAndDTOs/dtos
+    - Frontend je React + TypeScript + Vite u web-client
+    - Postoje role STUDENT, PROFESSOR, ADMIN
+    - Postoje moduli za studente, profesore/nastavnike, predmete, studijske programe, realizacije predmeta, slušanje predmeta, predispitne obaveze, ispite, prijave ispita, rezultate, upis/obnovu godine, zahteve za upis naredne godine, finansije, dokumentaciju, obaveštenja itd.
+
+    Tvoj zadatak:
+    Napravi jedan ozbiljan end-to-end / integration test pipeline koji simulira kompletno studiranje jednog studenta kroz sve ključne tokove sistema, i dodatno napravi mapu/proveru da li je svaki korak dostupan preko frontenda.
+
+    VAŽNO:
+    - Prvo analiziraj postojeće entitete, servise, kontrolere, DTO klase, frontend API fajlove i frontend stranice.
+    - Nemoj da pišeš generičke testove. Testovi moraju koristiti postojeću arhitekturu i postojeće API-je.
+    - Nemoj da hardkoduješ postojeće podatke iz baze. Napravi izolovan test dataset sa unikatnim prefiksom, npr. E2E_TEST_ + timestamp/UUID.
+    - Ako postojeći frontend nema test setup, dodaj razuman minimalan setup za frontend smoke/e2e testove, npr. Playwright ili drugi alat koji ima smisla za ovaj projekat.
+    - Ako je nešto moguće kroz backend, ali nije dostupno kroz frontend, nemoj to sakriti. Zapiši gap u dokumentaciji i, ako je razumno, dodaj minimalan frontend UI/API wiring da tok bude dostupan.
+    - Ako pronađeš bug u poslovnoj logici, popravi ga minimalno i pokrij testom.
+    - Testovi moraju biti deterministički i ponovljivi.
+
+    Glavni cilj testa:
+    Simulacija kompletnog studiranja jednog studenta na novom smeru koji kreiramo samo za test.
+
+    Napravi novi studijski program, npr:
+    "E2E_TEST - Digitalno inženjerstvo i AI"
+
+    Program traje 4 godine / 8 semestara.
+
+    Za taj smer generiši:
+    1. školsku godinu/e potrebne za simulaciju,
+    2. nastavnike/profesore,
+    3. predmete za sve 4 godine,
+    4. ESPB bodove po predmetima,
+    5. semestre,
+    6. realizacije predmeta po školskoj godini,
+    7. dodelu profesora na realizacije,
+    8. predispitne obaveze,
+    9. ispitne rokove,
+    10. ispite po predmetima,
+    11. jednog glavnog studenta sa nalogom i indeksom.
+
+    Test scenario mora da pokrije bar sledeće:
+
+    ADMIN SETUP TOK
+    1. Admin se autentifikuje.
+    2. Admin kreira novi studijski program.
+    3. Admin kreira predmete za sve 4 godine studija.
+    4. Admin povezuje predmete sa studijskim programom.
+    5. Admin kreira/generiše realizacije predmeta za aktivnu školsku godinu.
+    6. Admin kreira nastavnike.
+    7. Admin dodeljuje nastavnike na realizacije predmeta.
+    8. Admin kreira ispitne rokove.
+    9. Admin kreira ispite za predmete.
+    10. Admin kreira studenta, studentove lične podatke, indeks i STUDENT nalog.
+    11. Admin upisuje studenta u prvu godinu.
+    12. Proveri da student vidi samo predmete koje stvarno sluša.
+
+    STUDENT TOK — PRVA GODINA
+    1. Student se loguje.
+    2. Ako sistem traži promenu privremene lozinke, test mora da pokrije promenu lozinke.
+    3. Student otvara dashboard/profile/subjects/exams.
+    4. Proveri da vidi predmete prve godine.
+    5. Student pokušava da prijavi ispit iz predmeta koji NE sluša ili nije iz njegove trenutne godine/realizacije.
+       - Očekivan rezultat: greška, npr. SUBJECT_NOT_ENROLLED ili odgovarajući conflict.
+    6. Student prijavljuje validne ispite iz trenutnog semestra/godine.
+    7. Profesor ili admin evidentira predispitne poene.
+    8. Profesor/admin evidentira izlazak na ispit i rezultat.
+    9. Proveri da se računaju:
+       - ukupni poeni,
+       - ocena,
+       - položen/nepoložen status,
+       - ESPB,
+       - prosek,
+       - istorija izlazaka.
+    10. Student polaže sve predmete prve godine.
+    11. Student podnosi zahtev za upis naredne godine.
+    12. Sistem treba da predloži pravilan tip zahteva: ENROLL_NEXT_YEAR.
+    13. Admin kroz admin deo vidi zahtev.
+    14. Admin označava checklistu:
+       - ugovor potpisan,
+       - uplata potvrđena,
+       - dokumentacija kompletna.
+    15. Admin odobrava zahtev.
+    16. Proveri da je student upisan u drugu godinu i da su mu dodeljeni predmeti druge godine.
+
+    DRUGA GODINA — PAD ISPITA I PONOVNI IZLAZAK
+    1. Student sluša predmete druge godine.
+    2. Student prijavljuje ispit.
+    3. Profesor/admin evidentira predispitne obaveze.
+    4. Student izlazi na ispit i pada jedan predmet.
+    5. Proveri da se pad beleži u istoriji izlazaka.
+    6. Student isti predmet prijavljuje u sledećem roku.
+    7. Student ga tada polaže.
+    8. Proveri da istorija prikazuje oba izlaska:
+       - prvi izlazak nepoložen,
+       - drugi izlazak položen.
+    9. Proveri da predmet više nije dostupan za novu prijavu nakon što je položen.
+
+    PONIŠTAVANJE / ODJAVA / ISTORIJA
+    Dodaj poseban deo scenarija gde:
+    1. Student prijavi ispit.
+    2. Prijava se odjavi ili poništi sa razlogom.
+    3. Proveri da se status promenio, npr. ODJAVLJEN ili PONISTEN.
+    4. Proveri da se razlog/napomena čuva.
+    5. Proveri da poništena prijava ne utiče pogrešno na prosek, ESPB i položene predmete.
+    6. Proveri da se i dalje vidi u istoriji tamo gde ima smisla.
+
+    USLOVNI UPIS
+    Napravi scenario gde student nema dovoljno ESPB za regularan upis, ali ima dovoljno za uslovni upis.
+    Možeš ovo uraditi:
+    - ili kroz istog studenta u kasnijoj godini,
+    - ili kroz dodatnog test studenta ako je poslovno jednostavnije i test bude čistiji.
+
+    Test mora da proveri:
+    1. student ima npr. dovoljno ESPB za CONDITIONAL_ENROLLMENT, ali ne za ENROLL_NEXT_YEAR,
+    2. eligibility endpoint vraća CONDITIONAL_ENROLLMENT,
+    3. student može da izabere/prenese nepoložene predmete ako sistem to podržava,
+    4. admin odobrava zahtev,
+    5. student je upisan u narednu godinu, ali ima prenete/nepoložene predmete evidentirane,
+    6. student vidi i nove predmete i prenete predmete gde je to poslovno očekivano.
+
+    OBNOVA GODINE
+    Napravi scenario gde student nema dovoljno ESPB ni za uslovni upis.
+    Možeš koristiti dodatnog test studenta ako je čistije.
+
+    Test mora da proveri:
+    1. eligibility vraća RENEW_YEAR,
+    2. student podnosi zahtev za obnovu,
+    3. admin odobrava obnovu,
+    4. student ostaje na istoj godini studija,
+    5. nepoloženi predmeti se prenose ili ponovo dodeljuju prema postojećoj poslovnoj logici,
+    6. ne sme doći do dupliranja SlusaPredmet zapisa,
+    7. istorija upisa/obnove mora biti ispravna.
+
+    NEGATIVNI TESTOVI
+    Dodaj testove za greške:
+    1. Student ne može da prijavi predmet koji ne sluša.
+    2. Student ne može da prijavi već položen predmet.
+    3. Student ne može da pošalje dupli aktivni zahtev za upis godine.
+    4. Admin ne može da odobri zahtev ako checklist nije kompletan, ako takvo pravilo postoji.
+    5. Student bez aktivnog indeksa ili bez aktivne godine ne dobija pogrešne podatke.
+    6. Ne sme doći do dupliranja predmeta kod sync-subjects ili obnove godine.
+    7. Profesor ne sme da vidi/menja ispite/predmete koji nisu njegovi, ako permission model to već predviđa.
+
+    FRONTEND DOSTUPNOST
+    Obavezno proveri frontend:
+    1. Mapiraj svaki bitan backend tok na frontend rutu/komponentu/API helper.
+    2. Proveri da postoje stranice ili akcije za:
+       - admin kreiranje studenta,
+       - kreiranje indeksa,
+       - upis godine,
+       - sync predmeta,
+       - pregled studenta,
+       - kreiranje profesora,
+       - kreiranje predmeta,
+       - kreiranje ispitnih rokova,
+       - kreiranje ispita,
+       - student dashboard,
+       - student subjects,
+       - student exams,
+       - student year enrollment request,
+       - admin year enrollment approval/checklist,
+       - professor exams,
+       - professor registered students,
+       - professor results,
+       - predispitne obaveze.
+    3. Ako nešto nije dostupno iz UI-ja, napravi tabelu:
+       - funkcionalnost,
+       - backend endpoint,
+       - frontend status: available / partially available / missing,
+       - preporuka,
+       - da li si dodao minimalnu podršku.
+    4. Dodaj frontend smoke/e2e test koji bar prolazi kroz ključne rute za ADMIN, STUDENT i PROFESSOR i potvrđuje da se stranice renderuju bez runtime grešaka.
+    5. Ako je moguće, napravi Playwright test koji kroz browser prolazi kroz najbitnije korake:
+       - login admin,
+       - otvaranje admin dashboarda,
+       - pregled studenata/predmeta/ispita,
+       - login student,
+       - student dashboard/subjects/exams/year enrollment,
+       - login professor,
+       - professor subjects/exams/results.
+
+    IMPLEMENTACIJA TESTOVA
+    Na backendu preferiraj:
+    - JUnit 5,
+    - SpringBootTest / MockMvc / TestRestTemplate, šta bolje odgovara postojećem projektu,
+    - H2 test profil ako već postoji,
+    - postojeće repozitorijume i servise gde ima smisla,
+    - test data builder/helper klase da test ne bude haotičan.
+
+    Napravi helper/factory klase za test dataset, npr:
+    - E2ETestDataFactory
+    - FullStudyLifecycleIT
+    - FrontendAvailabilityReportTest ili slično
+    - StudyPipelineScenarioAssertions
+
+    Test ne sme biti gomila copy-paste koda. Organizuj ga lepo:
+    1. setup akademskog programa,
+    2. setup korisnika,
+    3. setup ispita,
+    4. student actions,
+    5. professor/admin grading actions,
+    6. enrollment request actions,
+    7. assertions.
+
+    DOKUMENTACIJA
+    Na kraju dodaj dokumentaciju, npr:
+    docs/E2E_STUDY_PIPELINE_TESTS.md
+
+    U dokumentaciji opiši:
+    1. šta test pokriva,
+    2. koji scenario simulira,
+    3. koji korisnici se kreiraju,
+    4. koji smer/predmeti se kreiraju,
+    5. koji frontend tokovi su dostupni,
+    6. koji frontend/backend gapovi su pronađeni,
+    7. kako se pokreću backend testovi,
+    8. kako se pokreću frontend/e2e testovi,
+    9. poznata ograničenja,
+    10. šta bi trebalo dodatno testirati kasnije.
+
+    README UPDATE
+    Ažuriraj glavni README ili odgovarajući README i dodaj kratku sekciju:
+    "Full study lifecycle test pipeline"
+
+    Tu ukratko napiši:
+    - komanda za backend testove,
+    - komanda za frontend testove,
+    - gde je dokumentacija,
+    - šta pipeline proverava.
+
+    KOMANDE KOJE MORAJU DA PROĐU
+    Na kraju obavezno pokreni i popravi sve dok ne prođe:
+    - iz ServerAndDTOs: ./mvnw test
+    - iz web-client: npm run lint
+    - ako dodaš frontend testove: npm run test ili npm run e2e, zavisno od setup-a
+
+    Ako neka komanda ne može da prođe zbog okruženja, jasno napiši:
+    - koju komandu si pokušao,
+    - zašto nije prošla,
+    - da li je problem u kodu ili lokalnom okruženju,
+    - šta sam ja treba da uradim da pokrenem.
+
+    Na kraju mi daj kratak finalni izveštaj:
+    1. šta si implementirao,
+    2. koji testovi su dodati,
+    3. koje rupe u poslovnoj logici su pronađene,
+    4. koje rupe u frontend dostupnosti su pronađene,
+    5. šta je popravljeno,
+    6. šta je ostalo kao ograničenje.

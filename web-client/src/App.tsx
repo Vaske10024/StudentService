@@ -1,17 +1,16 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { adminApi } from './api/admin';
 import { AuthProvider } from './auth/AuthContext';
 import { AppShell } from './components/AppShell';
 import { RequireAuth } from './routes/RequireAuth';
 import { AccountPage } from './pages/AccountPage';
-import { AdminDashboardPage, AdminEntityPage, AdminExamPeriodsPage, AdminExamsPage, AdminStudentDetailPage, AdminStudentIndexesPage, AdminStudentNewPage, AdminStudentsPage } from './pages/AdminPages';
+import { AdminDashboardPage, AdminExamPeriodsPage, AdminExamsPage, AdminStudentDetailPage, AdminStudentIndexesPage, AdminStudentNewPage, AdminStudentsPage } from './pages/AdminPages';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { LoginPage } from './pages/LoginPage';
 import { ProfessorDashboardPage, ProfessorExamRegisteredStudentsPage, ProfessorExamResultsPage, ProfessorExamsPage, ProfessorPredispitPage, ProfessorSubjectStudentsPage, ProfessorSubjectsPage } from './pages/ProfessorPages';
 import { StudentDashboardPage, StudentExamsPage, StudentGradesPage, StudentPaymentsPage, StudentProfilePage, StudentSubjectsPage } from './pages/StudentPages';
 import { AdminEnrollmentsPage, AdminPaymentsPage, AdminReportsPage, AdminRequestsPage, NotificationsPage, StudentRequestsPage } from './pages/ExtendedPages';
-import { AdminProfessorsPage, AdminSubjectsPage } from './pages/AdminCatalogPages';
+import { AdminProfessorsPage, AdminProgramsPage, AdminSchoolYearsPage, AdminSubjectsPage } from './pages/AdminCatalogPages';
 import { AdminYearEnrollmentsPage, StudentYearEnrollmentPage } from './pages/YearEnrollmentPages';
 
 export function App() {
@@ -59,10 +58,11 @@ export function App() {
                 <Route path="/admin/students/:id/indexes" element={<AdminStudentIndexesPage />} />
                 <Route path="/admin/professors" element={<AdminProfessorsPage />} />
                 <Route path="/admin/subjects" element={<AdminSubjectsPage />} />
-                <Route path="/admin/programs" element={<AdminEntityPage title="Study programs" loader={adminApi.programs} />} />
-                <Route path="/admin/school-years" element={<AdminEntityPage title="School years" loader={adminApi.schoolYears} />} />
+                <Route path="/admin/programs" element={<AdminProgramsPage />} />
+                <Route path="/admin/school-years" element={<AdminSchoolYearsPage />} />
                 <Route path="/admin/exam-periods" element={<AdminExamPeriodsPage />} />
                 <Route path="/admin/exams" element={<AdminExamsPage />} />
+                <Route path="/admin/exams/:id/results" element={<ProfessorExamResultsPage />} />
               </Route>
               <Route element={<RequireAuth roles={['ADMIN']} permissions={['ENROLLMENT_WRITE']} />}><Route path="/admin/enrollments" element={<AdminEnrollmentsPage />} /></Route>
               <Route element={<RequireAuth roles={['ADMIN']} permissions={['ENROLLMENT_WRITE']} />}><Route path="/admin/year-enrollments" element={<AdminYearEnrollmentsPage />} /></Route>

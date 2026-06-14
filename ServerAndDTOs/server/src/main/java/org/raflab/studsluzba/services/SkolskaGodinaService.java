@@ -32,8 +32,10 @@ public class SkolskaGodinaService {
         SkolskaGodina target = repo.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Ne postoji školska godina id=" + id));
         repo.deactivateAllActive();
-        target.setAktivna(true);
-        repo.save(target);
+        SkolskaGodina managedTarget = repo.findById(target.getId())
+                .orElseThrow(() -> new NoSuchElementException("Ne postoji skolska godina id=" + id));
+        managedTarget.setAktivna(true);
+        repo.save(managedTarget);
     }
 
     @Transactional(readOnly = true)

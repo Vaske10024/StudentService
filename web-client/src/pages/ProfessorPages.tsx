@@ -154,10 +154,26 @@ export function ProfessorExamResultsPage() {
   const [saving, setSaving] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [voiding, setVoiding] = useState<Record<string, unknown> | null>(null);
+  const [voidReason, setVoidReason] = useState('');
   async function lock() {
     if (!id || !window.confirm('Zaključati rezultate ispita? Posle toga profesor više ne može da ih menja.')) return;
     try { await professorApi.lockExam(id); setMessage('Rezultati su zaključani.'); }
     catch (error) { setActionError(apiErrorMessage(error, 'Zaključavanje nije uspelo.')); }
+  }
+  async function voidRegistration(event: FormEvent) {
+    event.preventDefault();
+    if (!voiding?.id) return;
+    setActionError(null);
+    try {
+      await professorApi.voidRegistration(String(voiding.id), voidReason);
+      setVoiding(null);
+      setVoidReason('');
+      setMessage('Prijava je ponistena sa sacuvanim razlogom.');
+      await result.reload();
+    } catch (error) {
+      setActionError(apiErrorMessage(error, 'Ponistavanje prijave nije uspelo.'));
+    }
   }
   if (result.loading) return <Loading />;
   if (result.error) return <ErrorMessage message={result.error} />;
@@ -168,9 +184,10 @@ export function ProfessorExamResultsPage() {
       setSaving(Number(row.id)); setActionError(null); setMessage(null);
       try { await professorApi.updateResult({ prijavaId: Number(row.id), ...payload }); setMessage('Rezultat je sačuvan, a ocena obračunata.'); await result.reload(); }
       catch (error) { setActionError(apiErrorMessage(error, 'Čuvanje rezultata nije uspelo.')); } finally { setSaving(null); }
-    }} /> }
+    }} /> },
+    { header: 'Ponistavanje', render: (row: Record<string, unknown>) => <button type="button" className="secondaryButton" onClick={() => { setVoiding(row); setVoidReason(''); }}>Ponisti prijavu</button> }
   ];
-  return <section className="card"><header className="pageHeader"><h1>Exam results</h1><button type="button" onClick={() => void lock()}>Zaključaj rezultate</button></header>{message && <p className="success">{message}</p>}{actionError && <ErrorMessage message={actionError} />}<DataTable rows={asRows(result.data)} columns={columns} /></section>;
+  return <section className="card"><header className="pageHeader"><h1>Exam results</h1><button type="button" onClick={() => void lock()}>Zaključaj rezultate</button></header>{message && <p className="success">{message}</p>}{actionError && <ErrorMessage message={actionError} />}<DataTable rows={asRows(result.data)} columns={columns} />{voiding && <Modal title="Poništi prijavu ispita" onClose={() => setVoiding(null)}><form className="formGrid" onSubmit={voidRegistration}><label>Razlog *<textarea required value={voidReason} onChange={(e) => setVoidReason(e.target.value)} /></label><button type="submit">Poništi prijavu</button></form></Modal>}</section>;
 }
 
 export function ProfessorPredispitPage() {
