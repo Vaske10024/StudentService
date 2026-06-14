@@ -10,6 +10,8 @@ import org.raflab.studsluzba.model.security.Role;
 import org.raflab.studsluzba.model.security.UserAccount;
 import org.raflab.studsluzba.repositories.*;
 import org.raflab.studsluzba.repositories.security.UserAccountRepository;
+import org.raflab.studsluzba.repositories.schedule.StudentGroupMembershipRepository;
+import org.raflab.studsluzba.repositories.schedule.ClassSessionRepository;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -30,6 +32,8 @@ public class CurrentUser {
     private final IspitRepository ispitRepo;
     private final IspitQueryRepository prijavaRepo;
     private final PredispitnaObavezaRepository predObRepo;
+    private final StudentGroupMembershipRepository groupMembershipRepo;
+    private final ClassSessionRepository classSessionRepo;
 
     public UserAccount account() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -129,6 +133,16 @@ public class CurrentUser {
         requireProfessorOwnsDrziPredmet(ispit.getDrziPredmet().getId());
     }
 
+    public void requireAdminOrLeadProfessorOwnsIspit(Long ispitId) {
+        if (isAdmin()) return;
+        Ispit ispit = ispitRepo.findById(ispitId)
+                .orElseThrow(() -> new NoSuchElementException("Ispit ne postoji: " + ispitId));
+        if (ispit.getDrziPredmet() == null || ispit.getDrziPredmet().getUloga() != DrziPredmet.Uloga.NOSILAC) {
+            throw new AccessDeniedException("Samo nosilac predmeta ili admin može zaključati rezultate.");
+        }
+        requireProfessorOwnsDrziPredmet(ispit.getDrziPredmet().getId());
+    }
+
     public void requireAdminOrProfessorOwnsPrijava(Long prijavaId) {
         if (isAdmin()) return;
         PrijavaIspita pi = prijavaRepo.findById(prijavaId)
@@ -149,8 +163,7 @@ public class CurrentUser {
         if (predmetId == null || sgId == null || nastavnikId == null) {
             throw new AccessDeniedException("Profesor nije povezan sa ovom predispitnom obavezom.");
         }
-        DrziPredmet dp = drziRepo.getDrziPredmetNastavnikPredmetUGodini(predmetId, nastavnikId, sgId);
-        if (dp == null) {
+        if (!drziRepo.existsProfessorAssignment(predmetId, nastavnikId, sgId)) {
             throw new AccessDeniedException("Profesor može menjati samo predispitne obaveze za svoje predmete.");
         }
     }
@@ -158,8 +171,17 @@ public class CurrentUser {
     public void requireAdminOrProfessorOwnsPredmetInYear(Long predmetId, Long skolskaGodinaId) {
         if (isAdmin()) return;
         Long nastavnikId = linkedNastavnikId();
-        if (!isProfessor() || nastavnikId == null || drziRepo.getDrziPredmetNastavnikPredmetUGodini(predmetId, nastavnikId, skolskaGodinaId) == null) {
+        if (!isProfessor() || nastavnikId == null || !drziRepo.existsProfessorAssignment(predmetId, nastavnikId, skolskaGodinaId)) {
             throw new AccessDeniedException("Profesor može menjati predispitne obaveze samo za svoje predmete.");
         }
+    }
+
+    public void requireCanAccessScheduleGroup(Long groupId) {
+        if (isAdmin()) return;
+        if (isStudent() && linkedStudentIndeksId() != null
+                && groupMembershipRepo.existsByStudentGroupIdAndStudentIndeksId(groupId, linkedStudentIndeksId())) return;
+        if (isProfessor() && linkedNastavnikId() != null
+                && classSessionRepo.existsByStudentGroupIdAndProfessorId(groupId, linkedNastavnikId())) return;
+        throw new AccessDeniedException("Korisnik nema pristup rasporedu ove grupe.");
     }
 }

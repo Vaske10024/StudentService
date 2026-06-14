@@ -138,6 +138,11 @@ public class MeController {
         dto.setDatumOdrzavanja(i.getDatumOdrzavanja());
         dto.setVremePocetka(i.getVremePocetka());
         dto.setZakljucen(i.isZakljucen());
+        if (i.getIspitniRok() != null) {
+            dto.setIspitniRokId(i.getIspitniRok().getId());
+            dto.setRokDatumPocetka(i.getIspitniRok().getDatumPocetka());
+            dto.setRokDatumZavrsetka(i.getIspitniRok().getDatumZavrsetka());
+        }
         if (i.getDrziPredmet() != null) {
             dto.setDrziPredmetId(i.getDrziPredmet().getId());
             if (i.getDrziPredmet().getPredmet() != null) dto.setPredmetNaziv(i.getDrziPredmet().getPredmet().getNaziv());

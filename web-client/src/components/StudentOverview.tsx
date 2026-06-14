@@ -168,6 +168,7 @@ export function StudentLifecycle({ dashboard }: { dashboard: StudentDashboard | 
 }
 
 export function StudentOverview({ dashboard }: { dashboard: StudentDashboard }) {
+  const latestEnrollment = asRows(dashboard.studyEnrollments)[0] ?? {};
   return (
     <div className="stack">
       <section className="card">
@@ -177,7 +178,9 @@ export function StudentOverview({ dashboard }: { dashboard: StudentDashboard }) 
           ['Study program', pick(record(record(dashboard.activeIndex).studijskiProgram), ['naziv'])],
           ['Financing', pick(record(dashboard.activeIndex), ['nacinFinansiranja'])],
           ['Valid from', pick(record(dashboard.activeIndex), ['vaziOd'])],
-          ['School year', pick(record(dashboard.schoolYear), ['godina'])]
+          ['Active school year', pick(record(dashboard.schoolYear), ['godina'])],
+          ['Current study year', pick(latestEnrollment, ['godina'])],
+          ['Enrollment school year', pick(latestEnrollment, ['skolskaGodina'])]
         ]} />
       </section>
       <section className="card">

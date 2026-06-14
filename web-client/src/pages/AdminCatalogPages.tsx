@@ -62,10 +62,22 @@ export function AdminProfessorsPage() {
     }
   }
 
+  async function provision(id: unknown) {
+    setError(null);
+    try {
+      const result = await adminApi.provisionProfessor(String(id));
+      setMessage(result.accountCreated
+        ? `Professor account ${result.username} created. One-time temporary password: ${result.temporaryPassword}`
+        : `Professor already has account ${result.username}.`);
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Professor account provisioning failed.'));
+    }
+  }
+
   const columns = [
     { header: 'Professor', render: (row: Record<string, unknown>) => <strong>{`${pick(row, ['ime'])} ${pick(row, ['prezime'])}`}</strong> },
     { header: 'Email', render: (row: Record<string, unknown>) => pick(row, ['email']) },
-    { header: 'Profile', render: (row: Record<string, unknown>) => <button type="button" className="secondaryButton" onClick={() => void openProfile(row.id)}>Open profile</button> }
+    { header: 'Actions', render: (row: Record<string, unknown>) => <div className="buttonGroup"><button type="button" className="secondaryButton" onClick={() => void openProfile(row.id)}>Open profile</button><button type="button" onClick={() => void provision(row.id)}>Provision account</button></div> }
   ];
 
   return (

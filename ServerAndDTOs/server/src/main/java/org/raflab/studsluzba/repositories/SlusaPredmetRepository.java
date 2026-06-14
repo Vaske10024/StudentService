@@ -14,8 +14,12 @@ public interface SlusaPredmetRepository extends CrudRepository<SlusaPredmet, Lon
     boolean existsByStudentIndeksIdAndDrziPredmetId(Long studentIndeksId, Long drziPredmetId);
     boolean existsByStudentIndeksIdAndRealizacijaPredmetaId(Long studentIndeksId, Long realizacijaPredmetaId);
 
-    @Query("select distinct sp.studentIndeks from SlusaPredmet sp " +
-            "where sp.realizacijaPredmeta.id = (select dp.realizacijaPredmeta.id from DrziPredmet dp where dp.id = :drziPredmetId)")
+    @Query("select distinct si from SlusaPredmet sp " +
+            "join sp.studentIndeks si " +
+            "join fetch si.student student " +
+            "where sp.drziPredmet.id = :drziPredmetId " +
+            "or sp.realizacijaPredmeta.id in " +
+            "(select dp.realizacijaPredmeta.id from DrziPredmet dp where dp.id = :drziPredmetId)")
     List<StudentIndeks> getStudentiSlusaPredmetZaDrziPredmet(@Param("drziPredmetId") Long drziPredmetId);
 
     @Query("select case when count(sp)>0 then true else false end " +
@@ -26,6 +30,14 @@ public interface SlusaPredmetRepository extends CrudRepository<SlusaPredmet, Lon
     boolean existsStudentSlusaPredmetAktivna(@Param("studentIndeksId") Long studentIndeksId,
                                              @Param("predmetId") Long predmetId);
 
+    @Query("select case when count(sp)>0 then true else false end from SlusaPredmet sp "
+            + "where sp.studentIndeks.id = :studentIndeksId "
+            + "and sp.realizacijaPredmeta.programPredmet.predmet.id = :predmetId "
+            + "and sp.skolskaGodina.id = :skolskaGodinaId")
+    boolean existsStudentSlusaPredmetUGodini(@Param("studentIndeksId") Long studentIndeksId,
+                                             @Param("predmetId") Long predmetId,
+                                             @Param("skolskaGodinaId") Long skolskaGodinaId);
+
     // ISPRAVKA: stvarno filtrira aktivnu školsku godinu
     @EntityGraph(attributePaths = {"realizacijaPredmeta", "realizacijaPredmeta.programPredmet",
             "realizacijaPredmeta.programPredmet.predmet", "realizacijaPredmeta.programPredmet.program",
@@ -35,6 +47,12 @@ public interface SlusaPredmetRepository extends CrudRepository<SlusaPredmet, Lon
             "where sp.studentIndeks.id = :indeksId " +
             "and sp.skolskaGodina.aktivna = true")
     List<SlusaPredmet> getSlusaPredmetForIndeksAktivnaGodina(@Param("indeksId") Long indeksId);
+
+    @EntityGraph(attributePaths = {"realizacijaPredmeta", "realizacijaPredmeta.programPredmet",
+            "realizacijaPredmeta.programPredmet.predmet", "realizacijaPredmeta.programPredmet.program",
+            "skolskaGodina"})
+    @Query("select sp from SlusaPredmet sp where sp.studentIndeks.id = :indeksId order by sp.id")
+    List<SlusaPredmet> findAllForStudent(@Param("indeksId") Long indeksId);
 
     @Query("select sp.studentIndeks " +
             "from SlusaPredmet sp " +

@@ -3,6 +3,7 @@ package org.raflab.studsluzba.services;
 import lombok.RequiredArgsConstructor;
 import org.raflab.studsluzba.model.StudentIndeks;
 import org.raflab.studsluzba.model.StudentPodaci;
+import org.raflab.studsluzba.model.Nastavnik;
 import org.raflab.studsluzba.model.security.Role;
 import org.raflab.studsluzba.model.security.UserAccount;
 import org.raflab.studsluzba.repositories.security.UserAccountRepository;
@@ -55,6 +56,36 @@ public class UserAccountService {
 
         account.setLinkedStudentIndeks(activeIndex);
         return new ProvisionResult(userAccountRepository.save(account), temporaryPassword, created);
+    }
+
+    @Transactional
+    public ProvisionResult provisionProfessorAccountWithCredential(Nastavnik professor) {
+        if (professor == null || professor.getId() == null) {
+            throw ApiException.badRequest("Profesor je obavezan za kreiranje naloga.");
+        }
+        String email = clean(professor.getEmail());
+        if (email == null) {
+            throw ApiException.badRequest("Email profesora je obavezan za kreiranje naloga.");
+        }
+        UserAccount existing = userAccountRepository.findByLinkedNastavnikId(professor.getId()).orElse(null);
+        if (existing != null) {
+            if (existing.getRole() != Role.PROFESSOR) {
+                throw ApiException.conflict("PROFESSOR_ACCOUNT_ROLE_CONFLICT", "Profesor je povezan sa nalogom koji nema PROFESSOR ulogu.");
+            }
+            return new ProvisionResult(existing, null, false);
+        }
+        if (userAccountRepository.existsByUsername(email)) {
+            throw ApiException.conflict("USERNAME_EXISTS", "Korisnički nalog sa email-om profesora već postoji.");
+        }
+        UserAccount account = new UserAccount();
+        String temporaryPassword = generateTemporaryPassword();
+        account.setUsername(email);
+        account.setPasswordHash(passwordEncoder.encode(temporaryPassword));
+        account.setRole(Role.PROFESSOR);
+        account.setEnabled(true);
+        account.setMustChangePassword(true);
+        account.setLinkedNastavnik(professor);
+        return new ProvisionResult(userAccountRepository.save(account), temporaryPassword, true);
     }
 
     @Transactional

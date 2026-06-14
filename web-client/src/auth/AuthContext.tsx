@@ -36,8 +36,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     void refresh();
     const listener = () => setUser(null);
+    const mustChangeListener = () => { void refresh(); };
     window.addEventListener('auth:unauthorized', listener);
-    return () => window.removeEventListener('auth:unauthorized', listener);
+    window.addEventListener('auth:must-change-password', mustChangeListener);
+    return () => {
+      window.removeEventListener('auth:unauthorized', listener);
+      window.removeEventListener('auth:must-change-password', mustChangeListener);
+    };
   }, [refresh]);
 
   const login = useCallback(async (username: string, password: string) => {

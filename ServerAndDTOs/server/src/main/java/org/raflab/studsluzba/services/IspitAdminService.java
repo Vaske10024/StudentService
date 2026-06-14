@@ -8,6 +8,9 @@ import org.raflab.studsluzba.model.ispiti.IspitniRok;
 import org.raflab.studsluzba.repositories.DrziPredmetRepository;
 import org.raflab.studsluzba.repositories.IspitRepository;
 import org.raflab.studsluzba.repositories.IspitniRokRepository;
+import org.raflab.studsluzba.repositories.IspitQueryRepository;
+import org.raflab.studsluzba.model.ispiti.PrijavaIspita;
+import org.raflab.studsluzba.model.ispiti.PrijavaStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +27,9 @@ public class IspitAdminService {
     private final IspitRepository ispitRepository;
     private final IspitniRokRepository rokRepository;
     private final DrziPredmetRepository drziPredmetRepository;
+    private final IspitQueryRepository prijavaRepository;
+    private final AcademicProgressService academicProgressService;
+    private final NotificationService notificationService;
 
     @PersistenceContext
     private EntityManager em;
@@ -82,7 +88,14 @@ public class IspitAdminService {
             throw new IllegalStateException("Ispit je zaključan i vreme se ne može menjati.");
         }
 
-        if (datum != null) ispit.setDatumOdrzavanja(datum);
+        if (datum != null) {
+            IspitniRok rok = ispit.getIspitniRok();
+            if (rok != null && ((rok.getDatumPocetka() != null && datum.isBefore(rok.getDatumPocetka()))
+                    || (rok.getDatumZavrsetka() != null && datum.isAfter(rok.getDatumZavrsetka())))) {
+                throw new IllegalArgumentException("Datum ispita mora biti unutar izabranog ispitnog roka.");
+            }
+            ispit.setDatumOdrzavanja(datum);
+        }
         if (vreme != null) ispit.setVremePocetka(vreme);
 
         ispitRepository.save(ispit);
@@ -97,9 +110,28 @@ public class IspitAdminService {
                 .orElseThrow(() -> new IllegalArgumentException("Nepostojeći ispit id=" + ispitId));
 
         if (!ispit.isZakljucen()) {
+            for (PrijavaIspita prijava : prijavaRepository.findByIspitId(ispitId)) {
+                if (Boolean.TRUE.equals(prijava.getPonisteno()) || prijava.getStatus() == PrijavaStatus.ODJAVLJEN) continue;
+                if (!prijava.isDaLiJeIzasao()) {
+                    prijava.setStatus(PrijavaStatus.ODSUTAN);
+                } else if (prijava.getOcena() >= 6) {
+                    prijava.setStatus(PrijavaStatus.POLOZIO);
+                } else {
+                    prijava.setStatus(PrijavaStatus.PAO);
+                }
+                prijavaRepository.save(prijava);
+            }
             ispit.setZakljucen(true);
             ispitRepository.save(ispit);
             em.flush();
+            prijavaRepository.findByIspitId(ispitId).stream()
+                    .filter(p -> p.getStudent() != null && p.getStudent().getId() != null)
+                    .map(p -> p.getStudent().getId()).distinct()
+                    .forEach(indeksId -> {
+                        academicProgressService.recalculateEarnedEcts(indeksId);
+                        notificationService.notifyStudent(indeksId, "EXAM_RESULTS_LOCKED",
+                                "Rezultati ispita su zaključani", "Zaključani su rezultati ispita #" + ispitId + ".");
+                    });
         }
     }
 }

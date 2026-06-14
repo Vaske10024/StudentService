@@ -1,13 +1,15 @@
 package org.raflab.studsluzba.model.ispiti;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import org.raflab.studsluzba.model.StudentIndeks;
 
 import javax.persistence.*;
 
 @Entity
-@Data
+@Getter
+@Setter
 @Table(name = "slusa_predmet",
         uniqueConstraints = @UniqueConstraint(name = "uk_slusa_student_realizacija",
                 columnNames = {"student_indeks_id", "realizacija_predmeta_id"}))
@@ -36,4 +38,17 @@ public class SlusaPredmet {
 
     @ManyToOne(optional=false)
     private SkolskaGodina skolskaGodina;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof SlusaPredmet)) return false;
+        SlusaPredmet that = (SlusaPredmet) o;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31;
+    }
 }

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.raflab.studsluzba.model.dtos.PredispitCreateRequest;
 import org.raflab.studsluzba.model.dtos.PredispitOstvarenoRequest;
 import org.raflab.studsluzba.model.dtos.PredispitnaObavezaDTO;
+import org.raflab.studsluzba.model.dtos.PredispitGradebookDTO;
 import org.raflab.studsluzba.model.ispiti.PredispitnaObaveza;
 import org.raflab.studsluzba.security.CurrentUser;
 import org.raflab.studsluzba.services.OstvarenaPredObavService;
@@ -61,6 +62,12 @@ public class PredispitAdminController {
                                                             @RequestParam Long predmetId,
                                                             @RequestParam Long skolskaGodinaId) {
         return ostvarenaService.listDetalji(studentIndeksId, predmetId, skolskaGodinaId);
+    }
+
+    @GetMapping("/gradebook")
+    public List<PredispitGradebookDTO> gradebook(@RequestParam Long drziPredmetId) {
+        currentUser.requireProfessorOwnsDrziPredmet(drziPredmetId);
+        return ostvarenaService.gradebook(drziPredmetId);
     }
 
     private PredispitnaObavezaDTO toDto(PredispitnaObaveza po) {

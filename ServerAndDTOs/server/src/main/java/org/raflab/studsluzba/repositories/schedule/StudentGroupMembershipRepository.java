@@ -1,1 +1,6 @@
-package org.raflab.studsluzba.repositories.schedule;import org.raflab.studsluzba.model.schedule.StudentGroupMembership;import org.springframework.data.jpa.repository.JpaRepository;public interface StudentGroupMembershipRepository extends JpaRepository<StudentGroupMembership,Long>{}
+package org.raflab.studsluzba.repositories.schedule;
+import org.raflab.studsluzba.model.schedule.StudentGroupMembership;
+import org.springframework.data.jpa.repository.JpaRepository;
+public interface StudentGroupMembershipRepository extends JpaRepository<StudentGroupMembership,Long>{
+ boolean existsByStudentGroupIdAndStudentIndeksId(Long groupId,Long indeksId);
+}

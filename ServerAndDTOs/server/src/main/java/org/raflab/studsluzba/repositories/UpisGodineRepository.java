@@ -11,6 +11,6 @@ import java.util.List;
 public interface UpisGodineRepository extends CrudRepository<UpisGodine, Long> {
     boolean existsByIndeksIdAndUpisujeGodinuAndSkolskaGodinaId(Long indeksId, int upisujeGodinu, Long skolskaGodinaId);
 
-    @Query("select u from UpisGodine u where u.indeks.id = :indeksId order by u.datum desc")
+    @Query("select u from UpisGodine u where u.indeks.id = :indeksId order by u.datum desc, u.id desc")
     List<UpisGodine> findUpisi(@Param("indeksId") Long indeksId);
 }

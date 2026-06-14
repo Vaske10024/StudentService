@@ -8,10 +8,11 @@ import { AdminDashboardPage, AdminEntityPage, AdminExamPeriodsPage, AdminExamsPa
 import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { LoginPage } from './pages/LoginPage';
-import { ProfessorDashboardPage, ProfessorExamResultsPage, ProfessorExamsPage, ProfessorPredispitPage, ProfessorSubjectStudentsPage, ProfessorSubjectsPage } from './pages/ProfessorPages';
+import { ProfessorDashboardPage, ProfessorExamRegisteredStudentsPage, ProfessorExamResultsPage, ProfessorExamsPage, ProfessorPredispitPage, ProfessorSubjectStudentsPage, ProfessorSubjectsPage } from './pages/ProfessorPages';
 import { StudentDashboardPage, StudentExamsPage, StudentGradesPage, StudentPaymentsPage, StudentProfilePage, StudentSubjectsPage } from './pages/StudentPages';
 import { AdminEnrollmentsPage, AdminPaymentsPage, AdminReportsPage, AdminRequestsPage, NotificationsPage, StudentRequestsPage } from './pages/ExtendedPages';
 import { AdminProfessorsPage, AdminSubjectsPage } from './pages/AdminCatalogPages';
+import { AdminYearEnrollmentsPage, StudentYearEnrollmentPage } from './pages/YearEnrollmentPages';
 
 export function App() {
   return (
@@ -36,6 +37,7 @@ export function App() {
                 <Route path="/student/payments" element={<StudentPaymentsPage />} />
                 <Route path="/student/grades" element={<StudentGradesPage />} />
                 <Route path="/student/requests" element={<StudentRequestsPage />} />
+                <Route path="/student/year-enrollment" element={<StudentYearEnrollmentPage />} />
                 <Route path="/student/notifications" element={<NotificationsPage />} />
               </Route>
 
@@ -44,6 +46,7 @@ export function App() {
                 <Route path="/professor/subjects" element={<ProfessorSubjectsPage />} />
                 <Route path="/professor/subjects/:id/students" element={<ProfessorSubjectStudentsPage />} />
                 <Route path="/professor/exams" element={<ProfessorExamsPage />} />
+                <Route path="/professor/exams/:id/registered" element={<ProfessorExamRegisteredStudentsPage />} />
                 <Route path="/professor/exams/:id/results" element={<ProfessorExamResultsPage />} />
                 <Route path="/professor/predispit" element={<ProfessorPredispitPage />} />
               </Route>
@@ -62,6 +65,7 @@ export function App() {
                 <Route path="/admin/exams" element={<AdminExamsPage />} />
               </Route>
               <Route element={<RequireAuth roles={['ADMIN']} permissions={['ENROLLMENT_WRITE']} />}><Route path="/admin/enrollments" element={<AdminEnrollmentsPage />} /></Route>
+              <Route element={<RequireAuth roles={['ADMIN']} permissions={['ENROLLMENT_WRITE']} />}><Route path="/admin/year-enrollments" element={<AdminYearEnrollmentsPage />} /></Route>
               <Route element={<RequireAuth roles={['ADMIN']} permissions={['DOCUMENT_DECIDE']} />}><Route path="/admin/requests" element={<AdminRequestsPage />} /></Route>
               <Route element={<RequireAuth roles={['ADMIN']} permissions={['FINANCE_WRITE']} />}><Route path="/admin/payments" element={<AdminPaymentsPage />} /></Route>
               <Route element={<RequireAuth roles={['ADMIN']} permissions={['REPORT_EXPORT']} />}><Route path="/admin/reports" element={<AdminReportsPage />} /></Route>

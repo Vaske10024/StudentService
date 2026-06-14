@@ -1,6 +1,7 @@
 package org.raflab.studsluzba.model.ispiti;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.raflab.studsluzba.model.Nastavnik;
 
 import javax.persistence.*;
@@ -12,7 +13,8 @@ import javax.persistence.*;
   da se u skolsku godinu ubaci ovo
 */
 @Entity
-@Data
+@Getter
+@Setter
 @Table(
         uniqueConstraints = {
                 @UniqueConstraint(
@@ -50,4 +52,17 @@ public class DrziPredmet {
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     private Uloga uloga = Uloga.NOSILAC;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof DrziPredmet)) return false;
+        DrziPredmet that = (DrziPredmet) o;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31;
+    }
 }

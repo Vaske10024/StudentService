@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.raflab.studsluzba.model.dtos.NastavnikLiteDTO;
 import org.raflab.studsluzba.model.dtos.NastavnikRequest;
 import org.raflab.studsluzba.model.dtos.NastavnikResponse;
+import org.raflab.studsluzba.model.dtos.ProfessorProvisionDTO;
 import org.raflab.studsluzba.utils.Converters;
 
 import org.raflab.studsluzba.model.Nastavnik;
@@ -41,6 +42,11 @@ public class NastavnikController {
     public Long addNewNastavnik(@RequestBody @Valid NastavnikRequest nastavnikRequest) {
         Nastavnik nastavnik = nastavnikService.save(Converters.toNastavnik(nastavnikRequest));
         return nastavnik.getId();
+    }
+
+    @PostMapping(path = "/{id}/provision-account")
+    public ProfessorProvisionDTO provisionAccount(@PathVariable Long id) {
+        return nastavnikService.provisionAccount(id);
     }
 
     @GetMapping("/all")

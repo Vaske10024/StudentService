@@ -48,7 +48,8 @@ public class UpisObnovaController {
                         "UPIS",
                         u.getUpisujeGodinu(),
                         u.getDatum(),
-                        u.getNapomena()
+                        u.getNapomena(),
+                        u.getSkolskaGodina() == null ? null : u.getSkolskaGodina().getGodina()
                 ))
                 .collect(Collectors.toList());
     }

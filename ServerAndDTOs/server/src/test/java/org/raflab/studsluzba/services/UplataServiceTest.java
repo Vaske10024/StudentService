@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.raflab.studsluzba.model.StudentIndeks;
 import org.raflab.studsluzba.model.Uplata;
 import org.raflab.studsluzba.model.dtos.SaldoResponse;
+import org.raflab.studsluzba.model.dtos.FinanceBalanceDTO;
 import org.raflab.studsluzba.repositories.StudentIndeksRepository;
 import org.raflab.studsluzba.repositories.UplataRepository;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -22,7 +23,8 @@ class UplataServiceTest {
     void saldoUsesBigDecimalAndStoredExchangeRate() {
         UplataRepository uplataRepo = mock(UplataRepository.class);
         StudentIndeksRepository indeksRepo = mock(StudentIndeksRepository.class);
-        UplataService service = new UplataService(uplataRepo, indeksRepo, mock(FinanceService.class));
+        FinanceService financeService = mock(FinanceService.class);
+        UplataService service = new UplataService(uplataRepo, indeksRepo, financeService);
         ReflectionTestUtils.setField(service, "defaultTuitionEur", new BigDecimal("1000.00"));
         ReflectionTestUtils.setField(service, "fallbackRate", new BigDecimal("100.00"));
         ReflectionTestUtils.setField(service, "exchangeRateApiUrl", "not-a-uri");
@@ -39,6 +41,7 @@ class UplataServiceTest {
 
         when(indeksRepo.findById(5L)).thenReturn(Optional.of(indeks));
         when(uplataRepo.findByIndeksId(5L)).thenReturn(Collections.singletonList(uplata));
+        when(financeService.balance(5L)).thenReturn(new FinanceBalanceDTO(new BigDecimal("900.00"), new BigDecimal("900.00"), BigDecimal.ZERO));
 
         SaldoResponse saldo = service.saldo(5L);
 

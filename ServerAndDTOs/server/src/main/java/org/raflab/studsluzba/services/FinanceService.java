@@ -56,6 +56,9 @@ public class FinanceService {
         if (original.isReversed() || original.getType() == LedgerEntry.Type.REVERSAL) {
             throw ApiException.conflict("LEDGER_ENTRY_ALREADY_REVERSED", "Ledger stavka je vec stornirana.");
         }
+        if (original.getType() == LedgerEntry.Type.PAYMENT) {
+            allocationService.reversePaymentAllocations(original);
+        }
         original.setReversed(true);
         ledgerRepo.save(original);
         LedgerEntry reversal = post(original.getStudentIndeks(), LedgerEntry.Type.REVERSAL,

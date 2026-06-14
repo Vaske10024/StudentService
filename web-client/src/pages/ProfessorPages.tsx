@@ -4,6 +4,7 @@ import { apiErrorMessage } from '../api/client';
 import { meApi } from '../api/me';
 import { professorApi } from '../api/professor';
 import { DataTable } from '../components/DataTable';
+import { Modal } from '../components/Modal';
 import { ErrorMessage, Loading } from '../components/Status';
 import { useApi } from '../hooks/useApi';
 import { asRows, JsonBlock, pick } from './dataHelpers';
@@ -18,8 +19,11 @@ const subjectColumns = [
 const examColumns = [
   { header: 'Exam', render: (row: Record<string, unknown>) => pick(row, ['id', 'ispitId']) },
   { header: 'Subject', render: (row: Record<string, unknown>) => pick(row, ['predmetNaziv', 'nazivPredmeta', 'naziv']) },
+  { header: 'Exam period', render: (row: Record<string, unknown>) => `${pick(row, ['rokDatumPocetka'])} - ${pick(row, ['rokDatumZavrsetka'])}` },
   { header: 'Date', render: (row: Record<string, unknown>) => pick(row, ['datumOdrzavanja', 'datum']) },
+  { header: 'Time', render: (row: Record<string, unknown>) => pick(row, ['vremePocetka', 'vreme']) },
   { header: 'Locked', render: (row: Record<string, unknown>) => pick(row, ['zakljucen', 'locked']) },
+  { header: 'Registered students', render: (row: Record<string, unknown>) => <Link to={`/professor/exams/${String(row.id ?? row.ispitId)}/registered`}>Open</Link> },
   { header: 'Results', render: (row: Record<string, unknown>) => <Link to={`/professor/exams/${String(row.id ?? row.ispitId)}/results`}>Open</Link> }
 ];
 
@@ -84,10 +88,64 @@ export function ProfessorSubjectStudentsPage() {
 }
 
 export function ProfessorExamsPage() {
-  const { data, loading, error } = useApi(meApi.professorExams, []);
+  const exams = useApi(meApi.professorExams, []);
+  const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
+  const [form, setForm] = useState({ datum: '', vreme: '' });
+  const [message, setMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  function edit(row: Record<string, unknown>) {
+    setEditing(row);
+    setForm({
+      datum: String(row.datumOdrzavanja ?? ''),
+      vreme: String(row.vremePocetka ?? '').slice(0, 5)
+    });
+    setMessage(null);
+    setActionError(null);
+  }
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    if (!editing?.id) return;
+    setActionError(null);
+    try {
+      await professorApi.updateExamTime(String(editing.id), form);
+      setEditing(null);
+      setMessage('Termin ispita je izmenjen.');
+      await exams.reload();
+    } catch (error) {
+      setActionError(apiErrorMessage(error, 'Izmena termina ispita nije uspela.'));
+    }
+  }
+
+  if (exams.loading) return <Loading />;
+  if (exams.error) return <ErrorMessage message={exams.error} />;
+  const columns = [
+    ...examColumns,
+    { header: 'Action', render: (row: Record<string, unknown>) => <button type="button" className="secondaryButton" disabled={row.zakljucen === true} onClick={() => edit(row)}>Edit date and time</button> }
+  ];
+  return <section className="card"><h1>My exams</h1>
+    {message && <p className="success">{message}</p>}{actionError && <ErrorMessage message={actionError} />}
+    <DataTable rows={asRows(exams.data)} columns={columns} />
+    {editing && <Modal title="Edit exam date and time" onClose={() => setEditing(null)}>
+      <form className="formGrid" onSubmit={save}>
+        <label>Exam date *<input required type="date" min={String(editing.rokDatumPocetka ?? '')} max={String(editing.rokDatumZavrsetka ?? '')} value={form.datum} onChange={(e) => setForm({ ...form, datum: e.target.value })} /></label>
+        <label>Start time *<input required type="time" value={form.vreme} onChange={(e) => setForm({ ...form, vreme: e.target.value })} /></label>
+        <button type="submit">Save changes</button>
+      </form>
+    </Modal>}
+  </section>;
+}
+
+export function ProfessorExamRegisteredStudentsPage() {
+  const { id } = useParams();
+  const { data, loading, error } = useApi(() => professorApi.registeredStudentsForExam(id ?? ''), [id]);
   if (loading) return <Loading />;
   if (error) return <ErrorMessage message={error} />;
-  return <section className="card"><h1>My exams</h1><DataTable rows={asRows(data)} columns={examColumns} /></section>;
+  return <section className="card">
+    <header className="pageHeader"><h1>Registered students</h1><Link className="buttonLink secondaryButton" to={`/professor/exams/${id ?? ''}/results`}>Open results</Link></header>
+    <DataTable rows={asRows(data)} columns={studentColumns} empty="No students are registered for this exam." />
+  </section>;
 }
 
 export function ProfessorExamResultsPage() {
@@ -120,34 +178,57 @@ export function ProfessorPredispitPage() {
   const [subjectId, setSubjectId] = useState('');
   useEffect(() => { const first = asRows(subjects.data)[0]; if (!subjectId && first?.id) setSubjectId(String(first.id)); }, [subjectId, subjects.data]);
   const selected = asRows(subjects.data).find((item) => String(item.id) === subjectId);
-  const students = useApi(() => subjectId ? professorApi.studentsForSubject(subjectId) : Promise.resolve([]), [subjectId]);
-  const definitions = useApi(() => selected?.predmetId && selected?.skolskaGodinaId ? professorApi.preExamDefinitions(String(selected.predmetId), String(selected.skolskaGodinaId)) : Promise.resolve([]), [selected?.predmetId, selected?.skolskaGodinaId]);
-  const [studentId, setStudentId] = useState('');
+  const gradebooks = useApi(() => subjectId ? professorApi.preExamGradebook(subjectId) : Promise.resolve([]), [subjectId]);
+  const [definitionId, setDefinitionId] = useState('');
   const [definition, setDefinition] = useState({ vrsta: '', maxPoeni: '10' });
-  const details = useApi(() => studentId && selected?.predmetId && selected?.skolskaGodinaId ? professorApi.preExamForStudent(studentId, String(selected.predmetId), String(selected.skolskaGodinaId)) : Promise.resolve([]), [studentId, selected?.predmetId, selected?.skolskaGodinaId]);
   const [error, setError] = useState<string | null>(null);
-  async function save(predObId: unknown, points: string) {
-    try { await professorApi.upsertPreExam({ studentIndeksId: Number(studentId), predispitnaObavezaId: Number(predObId), poeni: Number(points) }); await details.reload(); }
-    catch (err) { setError(apiErrorMessage(err, 'Predispitni poeni nisu sačuvani.')); }
+  const [message, setMessage] = useState<string | null>(null);
+  const books = asRows(gradebooks.data);
+  useEffect(() => {
+    if (!books.length) setDefinitionId('');
+    else if (!books.some((item) => String(item.predispitnaObavezaId) === definitionId)) setDefinitionId(String(books[0].predispitnaObavezaId));
+  }, [definitionId, gradebooks.data]);
+  const activeBook = books.find((item) => String(item.predispitnaObavezaId) === definitionId);
+
+  async function save(studentIndeksId: unknown, points: string) {
+    if (!activeBook) return;
+    setError(null); setMessage(null);
+    try {
+      await professorApi.upsertPreExam({ studentIndeksId: Number(studentIndeksId), predispitnaObavezaId: Number(activeBook.predispitnaObavezaId), poeni: Number(points) });
+      setMessage('Poeni su sačuvani.');
+      await gradebooks.reload();
+    } catch (err) { setError(apiErrorMessage(err, 'Predispitni poeni nisu sačuvani.')); }
   }
   async function createDefinition(event: FormEvent) {
     event.preventDefault();
     if (!selected?.predmetId || !selected?.skolskaGodinaId) return;
+    setError(null); setMessage(null);
     try {
-      await professorApi.createPreExamDefinition({ predmetId: Number(selected.predmetId), skolskaGodinaId: Number(selected.skolskaGodinaId), vrsta: definition.vrsta, maxPoeni: Number(definition.maxPoeni) });
-      setDefinition({ vrsta: '', maxPoeni: '10' }); await definitions.reload(); if (studentId) await details.reload();
+      const id = await professorApi.createPreExamDefinition({ predmetId: Number(selected.predmetId), skolskaGodinaId: Number(selected.skolskaGodinaId), vrsta: definition.vrsta, maxPoeni: Number(definition.maxPoeni) });
+      setDefinition({ vrsta: '', maxPoeni: '10' }); setDefinitionId(String(id));
+      setMessage('Predispitna obaveza je dodata. Sada možete uneti poene studentima.');
+      await gradebooks.reload();
     } catch (err) { setError(apiErrorMessage(err, 'Definicija predispitne obaveze nije sačuvana.')); }
   }
-  return <section className="card"><h1>Predispitne obaveze</h1>{error && <ErrorMessage message={error} />}
-    <div className="formGrid"><label>Predmet<select value={subjectId} onChange={(e) => { setSubjectId(e.target.value); setStudentId(''); }}><option value="">Select</option>{asRows(subjects.data).map((item) => <option key={String(item.id)} value={String(item.id)}>{pick(item, ['predmetNaziv'])}</option>)}</select></label>
-    <label>Student<select value={studentId} onChange={(e) => setStudentId(e.target.value)}><option value="">Select</option>{asRows(students.data).map((item) => <option key={String(item.id)} value={String(item.id)}>{`${pick(item, ['studProgramOznaka'])} ${pick(item, ['broj'])}/${pick(item, ['godina'])} - ${pick(item, ['ime'])} ${pick(item, ['prezime'])}`}</option>)}</select></label></div>
-    <form className="formGrid" onSubmit={createDefinition}><label>Nova obaveza<input required placeholder="Kolokvijum, projekat..." value={definition.vrsta} onChange={(e) => setDefinition({ ...definition, vrsta: e.target.value })} /></label><label>Maksimalni poeni<input required type="number" min="0" max="30" value={definition.maxPoeni} onChange={(e) => setDefinition({ ...definition, maxPoeni: e.target.value })} /></label><button disabled={!selected}>Dodaj obavezu</button></form>
-    <p className="muted">{asRows(definitions.data).length ? `${asRows(definitions.data).length} definisanih obaveza.` : 'Nema definisanih predispitnih obaveza za predmet i školsku godinu.'}</p>
-    {studentId && <DataTable rows={asRows(details.data)} columns={[
-      { header: 'Obaveza', render: (row) => pick(row, ['vrsta']) },
-      { header: 'Maksimum', render: (row) => pick(row, ['max']) },
-      { header: 'Poeni', render: (row) => <PreExamEditor row={row} onSave={save} /> }
-    ]} />}
+  if (subjects.loading) return <Loading />;
+  return <section className="stack">
+    <section className="card"><h1>Predispitne obaveze</h1><p className="muted">Prvo definišite obavezu, zatim unesite poene studentima koji slušaju predmet.</p>
+      {error && <ErrorMessage message={error} />}{message && <p className="success">{message}</p>}
+      <label>Predmet i školska godina<select value={subjectId} onChange={(e) => { setSubjectId(e.target.value); setDefinitionId(''); setError(null); setMessage(null); }}><option value="">Izaberite predmet</option>{asRows(subjects.data).map((item) => <option key={String(item.id)} value={String(item.id)}>{`${pick(item, ['predmetNaziv'])} · ${pick(item, ['skolskaGodinaNaziv'])} · ${pick(item, ['uloga'])}`}</option>)}</select></label>
+    </section>
+    {selected && <section className="card"><h2>1. Dodaj predispitnu obavezu</h2><p className="muted">Ukupan maksimum svih predispitnih obaveza za predmet može biti najviše 30 poena.</p>
+      <form className="formGrid" onSubmit={createDefinition}><label>Naziv obaveze<input required placeholder="Kolokvijum, projekat, aktivnost..." value={definition.vrsta} onChange={(e) => setDefinition({ ...definition, vrsta: e.target.value })} /></label><label>Maksimalni poeni<input required type="number" min="1" max="30" value={definition.maxPoeni} onChange={(e) => setDefinition({ ...definition, maxPoeni: e.target.value })} /></label><button type="submit">Dodaj obavezu</button></form>
+    </section>}
+    {selected && <section className="card"><h2>2. Unesi poene studentima</h2>
+      {gradebooks.loading ? <Loading /> : gradebooks.error ? <ErrorMessage message={gradebooks.error} /> : !books.length ? <p className="muted">Još nema predispitnih obaveza. Dodajte prvu obavezu iznad.</p> : <>
+        <div className="preExamTabs">{books.map((book) => <button type="button" className={String(book.predispitnaObavezaId) === definitionId ? 'active' : 'secondaryButton'} key={String(book.predispitnaObavezaId)} onClick={() => setDefinitionId(String(book.predispitnaObavezaId))}>{`${pick(book, ['vrsta'])} (${pick(book, ['maxPoeni'])} poena)`}</button>)}</div>
+        {activeBook && <DataTable rows={asRows(activeBook.studenti)} columns={[
+          { header: 'Indeks', render: (row) => `${pick(row, ['studProgramOznaka'])}-${pick(row, ['broj'])}/${pick(row, ['godina'])}` },
+          { header: 'Student', render: (row) => `${pick(row, ['ime'])} ${pick(row, ['prezime'])}` },
+          { header: `Poeni / ${String(activeBook.maxPoeni)}`, render: (row) => <StudentPreExamScoreEditor key={`${String(activeBook.predispitnaObavezaId)}-${String(row.studentIndeksId)}-${String(row.poeni)}`} row={row} max={Number(activeBook.maxPoeni)} onSave={save} /> }
+        ]} empty="Nema studenata koji slušaju ovaj predmet." />}
+      </>}
+    </section>}
   </section>;
 }
 
@@ -162,7 +243,7 @@ function ResultEditor({ row, disabled, onSave }: { row: Record<string, unknown>;
   </form>;
 }
 
-function PreExamEditor({ row, onSave }: { row: Record<string, unknown>; onSave: (id: unknown, points: string) => Promise<void> }) {
-  const [points, setPoints] = useState(String(row.osvojeni ?? 0));
-  return <form className="inlineForm" onSubmit={(event) => { event.preventDefault(); void onSave(row.predObId, points); }}><input type="number" min="0" max={Number(row.max)} value={points} onChange={(e) => setPoints(e.target.value)} /><button>Sačuvaj</button></form>;
+function StudentPreExamScoreEditor({ row, max, onSave }: { row: Record<string, unknown>; max: number; onSave: (studentIndeksId: unknown, points: string) => Promise<void> }) {
+  const [points, setPoints] = useState(String(row.poeni ?? 0));
+  return <form className="scoreEditor" onSubmit={(event) => { event.preventDefault(); void onSave(row.studentIndeksId, points); }}><input aria-label={`Poeni za ${String(row.ime)} ${String(row.prezime)}`} type="number" min="0" max={max} required value={points} onChange={(e) => setPoints(e.target.value)} /><button type="submit">Sačuvaj</button></form>;
 }

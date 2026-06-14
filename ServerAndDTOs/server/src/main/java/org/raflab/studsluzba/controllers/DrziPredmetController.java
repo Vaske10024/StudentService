@@ -29,7 +29,10 @@ public class DrziPredmetController {
 
     @GetMapping("/all")
     public List<DrziPredmetLiteDTO> all() {
-        return repo.findAllAktivnaWithRefs().stream()
+        List<DrziPredmet> assignments = currentUser.isAdmin()
+                ? repo.findAllAktivnaWithRefs()
+                : repo.findActiveByNastavnikId(currentUser.linkedNastavnikId());
+        return assignments.stream()
                 .map(this::toLite)
                 .collect(Collectors.toList());
     }

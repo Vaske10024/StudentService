@@ -56,7 +56,7 @@ class IspitCommandServiceTest {
         debtPolicyService = mock(DebtPolicyService.class);
         prerequisiteService = mock(PrerequisiteService.class);
         notificationService = mock(NotificationService.class);
-        service = new IspitCommandService(ispitRepo, prijavaRepo, indeksRepo, queryService, slusaRepo, predmetRepo, userRepo, gradingService, currentUser, studentLifecycleService, auditLogRepo, debtPolicyService, prerequisiteService, notificationService);
+        service = new IspitCommandService(ispitRepo, prijavaRepo, indeksRepo, queryService, slusaRepo, predmetRepo, userRepo, gradingService, currentUser, studentLifecycleService, auditLogRepo, debtPolicyService, prerequisiteService, notificationService, mock(AcademicProgressService.class));
     }
 
     @Test

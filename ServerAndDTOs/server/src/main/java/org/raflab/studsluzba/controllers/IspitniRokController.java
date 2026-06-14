@@ -63,6 +63,9 @@ public class IspitniRokController {
                     dto.setDatumOdrzavanja(i.getDatumOdrzavanja());
                     dto.setVremePocetka(i.getVremePocetka());
                     dto.setZakljucen(i.isZakljucen());
+                    dto.setIspitniRokId(rok.getId());
+                    dto.setRokDatumPocetka(rok.getDatumPocetka());
+                    dto.setRokDatumZavrsetka(rok.getDatumZavrsetka());
 
                     if (i.getDrziPredmet() != null) {
                         dto.setDrziPredmetId(i.getDrziPredmet().getId());

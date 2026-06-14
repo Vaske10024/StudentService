@@ -36,6 +36,11 @@ public class ApiException extends RuntimeException {
         return new ApiException(HttpStatus.FORBIDDEN, "FORBIDDEN", message);
     }
 
+    public static ApiException mustChangePassword() {
+        return new ApiException(HttpStatus.FORBIDDEN, "MUST_CHANGE_PASSWORD",
+                "Privremena lozinka mora biti promenjena pre korišćenja sistema.");
+    }
+
     public static ApiException notFound(String message) {
         return new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", message);
     }

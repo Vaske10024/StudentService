@@ -24,6 +24,7 @@ button, .buttonLink {
 }
 button:disabled { opacity: 0.55; cursor: not-allowed; }
 .secondaryButton { background: #eef2ff; color: #2343a3; }
+.dangerButton { background: #b42318; color: white; }
 .buttonGroup { display: flex; gap: 0.6rem; flex-wrap: wrap; }
 input, select, textarea {
   width: 100%;
@@ -104,9 +105,21 @@ th { color: #52607d; font-size: 0.85rem; text-transform: uppercase; letter-spaci
 .profileDetails { grid-column: 1 / -1; margin-top: 0.75rem; border-top: 1px solid #edf0f6; padding-top: 1rem; }
 .checkLabel { display: flex; align-items: center; gap: 0.6rem; }
 .checkLabel input { width: auto; }
+.subjectChecklist { display: grid; gap: 0.65rem; margin: 1rem 0; }
+.checklistSummary { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.checkDone, .checkMissing { border-radius: 999px; padding: 0.25rem 0.5rem; font-size: 0.75rem; font-weight: 750; }
+.checkDone { color: #067647; background: #edfcf2; }
+.checkMissing { color: #b42318; background: #fff1f0; }
+.instructionPanel { border-left: 5px solid #1f4fd7; background: #f8faff; }
+.instructionPanel p { margin-bottom: 0; }
+.modalActions { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e6f0; }
 .pager { display: flex; gap: 1rem; align-items: center; justify-content: flex-end; margin-top: 1rem; }
 .inlineForm { display: flex; gap: 0.45rem; align-items: center; flex-wrap: wrap; min-width: 360px; }
 .inlineForm input { width: auto; min-width: 85px; }
+.preExamTabs { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.preExamTabs button.active { background: #1f4fd7; color: white; }
+.scoreEditor { display: flex; gap: 0.55rem; align-items: center; }
+.scoreEditor input { width: 100px; }
 .modalBackdrop { position: fixed; inset: 0; background: rgba(9, 15, 31, 0.55); display: grid; place-items: center; padding: 1rem; z-index: 20; }
 .modal { background: white; border-radius: 18px; padding: 1rem; width: min(900px, 100%); max-height: 90vh; overflow: auto; }
 .modal header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }

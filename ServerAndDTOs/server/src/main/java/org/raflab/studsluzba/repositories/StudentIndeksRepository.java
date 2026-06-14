@@ -51,6 +51,10 @@ public interface StudentIndeksRepository extends JpaRepository<StudentIndeks, Lo
 	List<StudentIndeks> lockIndeksiForNumberAllocation(@Param("godina") int godina,
 												   @Param("studProgramOznaka") String studProgramOznaka);
 
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select si from StudentIndeks si where si.id = :id")
+	StudentIndeks findByIdForUpdate(@Param("id") Long id);
+
 	// NOVO: gasi sve indekse (aktivne) za datog studenta
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Transactional

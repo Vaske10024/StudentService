@@ -18,6 +18,7 @@ public class DocumentRequestController {
     @PostMapping public StudentRequest create(@RequestBody @Valid StudentRequestCreateDTO dto) { return service.create(dto); }
     @GetMapping public List<StudentRequest> list(@RequestParam Long indeksId) { return service.list(indeksId); }
     @GetMapping("/admin") public List<StudentRequest> listAll() { return service.listAll(); }
+    @GetMapping("/documents") public List<StudentDocument> documents(@RequestParam Long indeksId) { return service.documents(indeksId); }
     @PostMapping("/{id}/approve") public StudentRequest approve(@PathVariable Long id, @RequestParam(required=false) String note) { return service.decide(id, true, note); }
     @PostMapping("/{id}/reject") public StudentRequest reject(@PathVariable Long id, @RequestParam(required=false) String note) { return service.decide(id, false, note); }
     @PostMapping("/{id}/documents")

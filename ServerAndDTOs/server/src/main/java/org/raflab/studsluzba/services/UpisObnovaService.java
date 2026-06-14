@@ -52,7 +52,8 @@ public class UpisObnovaService {
                         "OBNOVA",
                         o.getObnavljaGodinu(),
                         o.getDatum(),
-                        o.getNapomena()
+                        o.getNapomena(),
+                        o.getSkolskaGodina() == null ? null : o.getSkolskaGodina().getGodina()
                 ))
                 .sorted(Comparator.comparing(UpisanaGodinaDTO::getDatum))
                 .collect(java.util.stream.Collectors.toList());
@@ -74,7 +75,8 @@ public class UpisObnovaService {
                     "UPIS",
                     u.getUpisujeGodinu(),
                     u.getDatum(),
-                    u.getNapomena()
+                    u.getNapomena(),
+                    u.getSkolskaGodina() == null ? null : u.getSkolskaGodina().getGodina()
             ));
         }
 
@@ -84,7 +86,8 @@ public class UpisObnovaService {
                     "OBNOVA",
                     o.getObnavljaGodinu(),
                     o.getDatum(),
-                    o.getNapomena()
+                    o.getNapomena(),
+                    o.getSkolskaGodina() == null ? null : o.getSkolskaGodina().getGodina()
             ));
         }
 
@@ -179,6 +182,7 @@ public class UpisObnovaService {
         o.setObnavljaGodinu(obnavljaGodinu);
 
         o.setNapomena("Obnova (API)");
+        o.setSkolskaGodina(aktivna);
         ObnovaGodine saved = obnovaRepo.save(o);
 
         for (DrziPredmet dp : dps) {

@@ -33,6 +33,12 @@ public class IspitController {
                 .collect(Collectors.toList());
     }
 
+    @PatchMapping("/{ispitId}/vreme")
+    public void updateTime(@PathVariable Long ispitId, @RequestBody IspitUpdateTimeRequest req) {
+        currentUser.requireAdminOrProfessorOwnsIspit(ispitId);
+        adminService.updateTime(ispitId, req.getDatum(), req.getVreme());
+    }
+
     @GetMapping("/{ispitId}/prosek")
     public Double prosek(@PathVariable Long ispitId) {
         currentUser.requireAdminOrProfessorOwnsIspit(ispitId);
@@ -108,7 +114,7 @@ public class IspitController {
 
     @PatchMapping("/{ispitId}/zakljucaj")
     public void zakljucajRezultate(@PathVariable Long ispitId) {
-        currentUser.requireAdminOrProfessorOwnsIspit(ispitId);
+        currentUser.requireAdminOrLeadProfessorOwnsIspit(ispitId);
         adminService.lock(ispitId);
     }
 }

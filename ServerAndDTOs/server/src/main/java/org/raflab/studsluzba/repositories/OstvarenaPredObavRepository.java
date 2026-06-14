@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.List;
 
 @Repository
 public interface OstvarenaPredObavRepository extends CrudRepository<OstvarenaPredObav, Long> {
@@ -21,4 +22,6 @@ public interface OstvarenaPredObavRepository extends CrudRepository<OstvarenaPre
     @Query("select o from OstvarenaPredObav o where o.student.id = :studentId and o.obaveza.id = :obavezaId")
     Optional<OstvarenaPredObav> findByStudentAndObaveza(@Param("studentId") Long studentId,
                                                         @Param("obavezaId") Long obavezaId);
+
+    List<OstvarenaPredObav> findByObavezaId(Long obavezaId);
 }

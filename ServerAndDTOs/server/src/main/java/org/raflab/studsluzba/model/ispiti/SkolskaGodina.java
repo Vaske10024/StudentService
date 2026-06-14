@@ -1,11 +1,13 @@
 package org.raflab.studsluzba.model.ispiti;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import javax.persistence.*;
 import java.util.Set;
 
-@Data
+@Getter
+@Setter
 @Entity
 public class SkolskaGodina {
     @Id
@@ -27,7 +29,16 @@ public class SkolskaGodina {
     @OneToMany(mappedBy = "skolskaGodina")
     private Set<IspitniRok> ispitniRokovi;
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof SkolskaGodina)) return false;
+        SkolskaGodina that = (SkolskaGodina) o;
+        return id != null && id.equals(that.id);
+    }
 
-
-
+    @Override
+    public int hashCode() {
+        return 31;
+    }
 }

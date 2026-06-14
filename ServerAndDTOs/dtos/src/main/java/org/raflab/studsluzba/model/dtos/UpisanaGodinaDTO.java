@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
 public class UpisanaGodinaDTO {
     private Long id;          // id zapisa (UpisGodine ili ObnovaGodine)
@@ -15,4 +14,18 @@ public class UpisanaGodinaDTO {
     private int godina;       // upisujeGodinu / obnavljaGodinu
     private LocalDate datum;
     private String napomena;
+    private String skolskaGodina;
+
+    public UpisanaGodinaDTO(Long id, String tip, int godina, LocalDate datum, String napomena) {
+        this(id, tip, godina, datum, napomena, null);
+    }
+
+    public UpisanaGodinaDTO(Long id, String tip, int godina, LocalDate datum, String napomena, String skolskaGodina) {
+        this.id = id;
+        this.tip = tip;
+        this.godina = godina;
+        this.datum = datum;
+        this.napomena = napomena;
+        this.skolskaGodina = skolskaGodina;
+    }
 }

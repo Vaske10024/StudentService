@@ -94,18 +94,9 @@ In the same transaction, the backend:
 2. Deactivates any previously active index for the same student.
 3. Creates a `UserAccount` with role `STUDENT`, or links the existing student account to the new active index.
 4. Uses the faculty email as the username.
-5. Temporarily uses the faculty email as the initial password and stores only its BCrypt hash.
+5. Generates a one-time temporary password, stores only its BCrypt hash, and marks the account with `mustChangePassword=true`.
 
-The student can then log in with:
-
-```text
-username: faculty email
-password: faculty email
-```
-
-The student should immediately change the initial password from the student profile. The authenticated password-change endpoint is `POST /api/auth/password`.
-
-> TODO: Replace the email-based initial password with a generated temporary password and send it to the student's private email.
+The admin-only provisioning response displays the random temporary password once. After login, the backend allows only `/api/auth/me`, `/api/auth/password`, and `/api/auth/logout` until the password is changed. Other API calls return `403` with code `MUST_CHANGE_PASSWORD`.
 
 Creating another index for the same student does not create another account or reset the changed password. The existing account is only linked to the new active index.
 
@@ -172,6 +163,8 @@ export DB_URL='jdbc:mysql://localhost:3306/studentski_servis?useSSL=false&allowP
 export DB_USERNAME='student_service'
 export DB_PASSWORD='change-me'
 export CORS_ALLOWED_ORIGINS='http://localhost:5173'
+export BOOTSTRAP_ADMIN_USERNAME='admin@example.edu'
+export BOOTSTRAP_ADMIN_PASSWORD='replace-with-a-strong-secret'
 
 ./mvnw test
 ./mvnw install -DskipTests
@@ -179,6 +172,10 @@ export CORS_ALLOWED_ORIGINS='http://localhost:5173'
 ```
 
 The server listens on `http://localhost:8080` by default.
+
+### First admin bootstrap
+
+When no `ADMIN` account exists, set `BOOTSTRAP_ADMIN_USERNAME` and `BOOTSTRAP_ADMIN_PASSWORD` before one server start. The initializer creates exactly one enabled admin account and becomes a no-op as soon as any admin exists. Remove the bootstrap credentials from the environment after the first successful start.
 
 On Windows PowerShell, install the current multi-module artifacts before starting the
 server so the runtime does not pick up an older DTO snapshot:
@@ -271,6 +268,26 @@ Professor UI screens call:
 - `GET /api/me/professor/subjects`
 - `GET /api/me/professor/exams`
 
+Professor records do not automatically have login access. Admin provisions the linked account through:
+
+- `POST /api/nastavnik/{id}/provision-account`
+
+The response contains the one-time temporary password only when the account is first created. A second call returns the existing linked account without resetting its password.
+
+## End-to-end pipelines
+
+**Admin:** bootstrap/login -> activate school year -> create program and subjects -> generate annual realizations -> create professor and provision account -> assign professor -> create student/index account -> enroll study year -> create exam period/exam -> process finances and requests.
+
+**Student:** login with temporary password -> mandatory password change -> view index/subjects -> register or withdraw exam -> view attempt history and locked grades/ECTS -> view ledger-backed balance -> submit request -> download approved certificate.
+
+**Professor:** login with temporary password -> mandatory password change -> view assigned subjects/exams only -> view registered students -> enter results while unlocked -> lock results -> student statuses and ECTS are recalculated.
+
+## Manual test checklist
+
+- ADMIN: first login, active school year, program, subject, realization, professor account, assignment, student/index account, study-year enrollment, exam period/exam, ledger payment/obligation/reversal, request approval.
+- STUDENT: temporary-password redirect, password change, profile/index, subjects, exam registration/withdrawal/history, grades/ECTS, finance balance, request, approved document download, notifications.
+- PROFESSOR: temporary-password redirect, password change, own subjects only, own exam registrations, result entry, result lock, notifications.
+
 ## Role and permission matrix
 
 | Area | STUDENT | PROFESSOR | ADMIN |
@@ -359,6 +376,91 @@ These are implemented conservatively and should be confirmed with the faculty be
 3. Exam registration deadlines are derived from exam/exam-period dates when no dedicated registration-deadline table exists.
 4. Manual grade override is allowed only through backend paths that already passed authorization and is audited.
 5. JasperReports are not migrated to the frontend; report generation should remain a backend PDF/download responsibility.
+
+## Tok upisa/obnove godine
+
+Tok upisa postojeceg studenta odvojen je od postojeceg `EnrollmentApplication` toka, koji sluzi za prijem potpuno novog studenta i kreiranje naloga/indeksa.
+
+`StudentIndeks.godina` ostaje godina upisa koja je deo broja indeksa. Trenutna godina studija i skolska godina izvode se iz najnovijeg `UpisGodine` zapisa, kako se ne bi duplirali i razisli podaci.
+
+### Studentski tok
+
+1. Student otvara `/student/year-enrollment`.
+2. Backend iz polozenih/priznatih ispita racuna ostvarene ESPB bodove i prikazuje polozene i nepolozene predmete.
+3. Sistem nalazi najnoviji upis godine i sledecu vec konfigurisanu `SkolskaGodina`.
+4. Sistem predlaze `ENROLL_NEXT_YEAR`, `CONDITIONAL_ENROLLMENT` ili `RENEW_YEAR`.
+5. Student bira nepolozene predmete za prenos i podnosi zahtev.
+6. Zahtev prelazi u `PENDING_DOCUMENTS`. Student mora uzivo da potpise ugovor i donese potvrdu uplate i potrebnu dokumentaciju.
+7. Student prati status, moze da otkaze nezavrsen zahtev i dopuni zahtev koji je vracen u `NEEDS_CHANGES`.
+
+Podrazumevani pragovi su kumulativni:
+
+- redovan upis: `48 * trenutnaGodinaStudija` ESPB;
+- uslovni upis: `37 * trenutnaGodinaStudija` ESPB;
+- ispod uslovnog praga predlaze se obnova iste godine;
+- `ECTSRule` za program/ciljnu godinu ima prednost nad podrazumevanim pragom redovnog upisa;
+- maksimalan zbir izabranih prenetih predmeta je 60 ESPB.
+
+Pragovi su izdvojeni u `StudyYearEnrollmentPolicy` i podesivi promenljivama:
+
+- `ENROLLMENT_REGULAR_MINIMUM_ECTS_PER_YEAR`
+- `ENROLLMENT_CONDITIONAL_MINIMUM_ECTS_PER_YEAR`
+- `ENROLLMENT_TRANSFER_MAX_ECTS`
+
+Polozeni predmeti se proveravaju na backendu i ne mogu biti preneti. Za obnovu mora biti izabran najmanje jedan nepolozeni predmet ako takvi predmeti postoje.
+
+### Admin tok
+
+Admin sa `ENROLLMENT_WRITE` dozvolom otvara `/admin/year-enrollments`, filtrira zahteve, otvara detalje i proverava:
+
+- studenta, indeks, trenutnu i trazenu godinu studija;
+- trenutnu i ciljnu skolsku godinu;
+- ESPB snapshot iz trenutka podnosenja;
+- izabrane prenete predmete;
+- ugovor, uplatu i ostalu dokumentaciju;
+- istoriju statusa i napomene.
+
+Kada su ugovor, uplata i dokumentacija potvrdjeni, zahtev prelazi u `PENDING_ADMIN_APPROVAL`. Admin zatim moze da ga odobri, odbije sa razlogom ili vrati na dopunu.
+
+Samo admin approval, u jednoj transakciji, stvarno menja evidenciju:
+
+1. ponovo proverava ESPB i da izabrani predmeti nisu polozjeni;
+2. kreira `UpisGodine` za ciljnu skolsku godinu;
+3. za obnovu dodatno kreira povezani `ObnovaGodine`;
+4. za redovan/uslovni upis dodaje predmete nove godine i izabrane zaostatke;
+5. za obnovu dodaje izabrane nepolozene predmete;
+6. kreira/koristi `RealizacijaPredmeta` za ciljnu skolsku godinu i upisuje `SlusaPredmet`;
+7. osvezava cached `ostvarenoEspb`, belezi admina, status istoriju/audit i salje notifikaciju studentu.
+
+Student ne moze direktno da pozove admin approval niti `/api/studij/**` admin rute.
+
+### API endpointi
+
+| Method | Endpoint | Uloga | Namena |
+|---|---|---|---|
+| GET | `/api/enrollment/year-requests/me/eligibility` | STUDENT | Trenutno stanje, ESPB, predlog i predmeti za prenos |
+| GET | `/api/enrollment/year-requests/me` | STUDENT | Istorija sopstvenih zahteva |
+| POST | `/api/enrollment/year-requests/me` | STUDENT | Podnosenje zahteva |
+| PUT | `/api/enrollment/year-requests/me/{id}` | STUDENT | Dopuna i ponovno slanje |
+| POST | `/api/enrollment/year-requests/me/{id}/cancel` | STUDENT | Otkazivanje nezavrsenog zahteva |
+| GET | `/api/enrollment/year-requests/admin` | ADMIN + `ENROLLMENT_WRITE` | Lista i filteri po statusu/tipu/skolskoj godini/indeksu |
+| GET | `/api/enrollment/year-requests/admin/{id}` | ADMIN + `ENROLLMENT_WRITE` | Detalji zahteva |
+| PATCH | `/api/enrollment/year-requests/admin/{id}/checklist` | ADMIN + `ENROLLMENT_WRITE` | Potvrda ugovora/uplate/dokumentacije |
+| POST | `/api/enrollment/year-requests/admin/{id}/approve` | ADMIN + `ENROLLMENT_WRITE` | Transakciono odobrenje i stvarni upis |
+| POST | `/api/enrollment/year-requests/admin/{id}/reject` | ADMIN + `ENROLLMENT_WRITE` | Odbijanje sa razlogom |
+| POST | `/api/enrollment/year-requests/admin/{id}/needs-changes` | ADMIN + `ENROLLMENT_WRITE` | Vracanje na dopunu |
+
+Produkcijska sema se prosiruje migracijom `V11__study_year_enrollment_requests.sql`.
+
+### Trenutna ogranicenja i sledeca unapredjenja
+
+- Sledeca skolska godina mora unapred postojati u `SkolskaGodina`; sistem namerno ne kreira godinu automatski.
+- Naziv skolske godine treba da pocinje godinom, na primer `2026/2027` ili `26/27`, da bi sledeca godina mogla pouzdano da se odredi.
+- Ugovor, uplata i dokumentacija su trenutno admin-verifikovani flagovi; upload, verzionisanje i digitalni potpis nisu deo ovog toka.
+- Conditional enrollment trenutno nema poseban finansijski plan ili dodatni ugovor.
+- ESPB se racuna iz polozenih/priznatih `PrijavaIspita`; `StudentIndeks.ostvarenoEspb` je cached vrednost koja se osvezava pri zakljucavanju rezultata i admin approval-u.
+- Migraciju treba proveriti na tacnoj produkcijskoj MySQL verziji i realnom backup-u pre pustanja.
+- Sledeci koraci su konfiguracija pragova kroz admin UI, upload dokumenata, povezivanje payment flaga sa ledger pravilima i detaljniji izvestaji/audit dashboard.
 
 ## Verification
 

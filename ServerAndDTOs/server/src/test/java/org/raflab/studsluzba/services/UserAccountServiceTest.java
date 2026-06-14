@@ -3,6 +3,7 @@ package org.raflab.studsluzba.services;
 import org.junit.jupiter.api.Test;
 import org.raflab.studsluzba.model.StudentIndeks;
 import org.raflab.studsluzba.model.StudentPodaci;
+import org.raflab.studsluzba.model.Nastavnik;
 import org.raflab.studsluzba.model.security.Role;
 import org.raflab.studsluzba.model.security.UserAccount;
 import org.raflab.studsluzba.repositories.security.UserAccountRepository;
@@ -88,6 +89,24 @@ class UserAccountServiceTest {
 
         assertThat(passwordEncoder.matches("new-password", account.getPasswordHash())).isTrue();
         verify(repository).save(account);
+    }
+
+    @Test
+    void professorProvisionCreatesLinkedProfessorAccountOnlyOnce() {
+        Nastavnik professor = new Nastavnik();
+        professor.setId(22L);
+        professor.setEmail("professor@example.edu");
+        when(repository.findByLinkedNastavnikId(22L)).thenReturn(Optional.empty());
+        when(repository.existsByUsername("professor@example.edu")).thenReturn(false);
+        when(repository.save(any(UserAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserAccountService.ProvisionResult result = service.provisionProfessorAccountWithCredential(professor);
+
+        assertThat(result.isCreated()).isTrue();
+        assertThat(result.getAccount().getRole()).isEqualTo(Role.PROFESSOR);
+        assertThat(result.getAccount().getLinkedNastavnik()).isSameAs(professor);
+        assertThat(result.getAccount().isMustChangePassword()).isTrue();
+        assertThat(passwordEncoder.matches(result.getTemporaryPassword(), result.getAccount().getPasswordHash())).isTrue();
     }
 
     private StudentPodaci student() {

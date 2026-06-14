@@ -1,6 +1,7 @@
 package org.raflab.studsluzba.repositories.security;
 
 import org.raflab.studsluzba.model.security.UserAccount;
+import org.raflab.studsluzba.model.security.Role;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -20,4 +21,8 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
     Optional<UserAccount> findStudentAccountByStudentPodaciId(@Param("studentPodaciId") Long studentPodaciId);
 
     boolean existsByUsername(String username);
+    boolean existsByRole(Role role);
+
+    @EntityGraph(attributePaths = {"linkedNastavnik"})
+    Optional<UserAccount> findByLinkedNastavnikId(Long nastavnikId);
 }

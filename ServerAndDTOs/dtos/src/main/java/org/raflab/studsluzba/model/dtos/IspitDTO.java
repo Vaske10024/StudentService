@@ -14,6 +14,9 @@ public class IspitDTO {
     private LocalTime vremePocetka;
     private boolean zakljucen;
 
+    private Long ispitniRokId;
+    private LocalDate rokDatumPocetka;
+    private LocalDate rokDatumZavrsetka;
     private Long drziPredmetId;
     private String predmetNaziv;
     private String nastavnikImePrezime;

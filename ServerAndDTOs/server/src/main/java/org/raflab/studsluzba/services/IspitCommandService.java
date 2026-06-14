@@ -41,6 +41,7 @@ public class IspitCommandService {
     private final DebtPolicyService debtPolicyService;
     private final PrerequisiteService prerequisiteService;
     private final NotificationService notificationService;
+    private final AcademicProgressService academicProgressService;
 
     public Long prijaviStudenta(PrijavaCreateRequest req) {
         if (req == null) throw ApiException.badRequest("Request ne sme biti null.");
@@ -208,12 +209,13 @@ public class IspitCommandService {
         pi.setDaLiJeIzasao(false);
         pi.setBrojOsvojenihPoena(0);
         pi.setOcena(ocena);
-        pi.setStatus(PrijavaStatus.PRIJAVLJEN);
+        pi.setStatus(PrijavaStatus.PRIZNAT);
         pi.setPriznatSDrugogFakulteta(true);
         pi.setIspit(null);
         pi.setPredmet(predmetEntity);
 
         PrijavaIspita saved = iqRepo.save(pi);
+        academicProgressService.recalculateEarnedEcts(studentIndeksId);
         return saved != null && saved.getId() != null ? saved.getId() : pi.getId();
     }
 

@@ -32,4 +32,13 @@ public class PaymentAllocationService {
             remaining = remaining.subtract(allocated);
         }
     }
+
+    public void reversePaymentAllocations(LedgerEntry payment) {
+        for (PaymentAllocation allocation : allocationRepo.findByPaymentId(payment.getId())) {
+            FinancialObligation obligation = allocation.getObligation();
+            obligation.setAllocatedEur(obligation.getAllocatedEur().subtract(allocation.getAmountEur()).max(BigDecimal.ZERO));
+            obligationRepo.save(obligation);
+            allocationRepo.delete(allocation);
+        }
+    }
 }

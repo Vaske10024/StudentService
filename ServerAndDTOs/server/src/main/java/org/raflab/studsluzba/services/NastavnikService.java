@@ -3,6 +3,7 @@ package org.raflab.studsluzba.services;
 import lombok.RequiredArgsConstructor;
 import org.raflab.studsluzba.model.Nastavnik;
 import org.raflab.studsluzba.model.dtos.NastavnikLiteDTO;
+import org.raflab.studsluzba.model.dtos.ProfessorProvisionDTO;
 import org.raflab.studsluzba.repositories.NastavnikRepository;
 import org.raflab.studsluzba.security.ApiException;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import java.util.Optional;
 public class NastavnikService {
 
     private final NastavnikRepository nastavnikRepository;
+    private final UserAccountService userAccountService;
 
     public Nastavnik save(Nastavnik nastavnik) {
         nastavnik.setEmail(clean(nastavnik.getEmail()));
@@ -41,6 +43,15 @@ public class NastavnikService {
 
     public Optional<Nastavnik> findById(Long id) {
         return nastavnikRepository.findById(id);
+    }
+
+    @Transactional
+    public ProfessorProvisionDTO provisionAccount(Long professorId) {
+        Nastavnik professor = nastavnikRepository.findById(professorId)
+                .orElseThrow(() -> ApiException.notFound("Profesor ne postoji: " + professorId));
+        UserAccountService.ProvisionResult result = userAccountService.provisionProfessorAccountWithCredential(professor);
+        return new ProfessorProvisionDTO(professorId, result.getAccount().getId(), result.getAccount().getUsername(),
+                result.getTemporaryPassword(), result.isCreated());
     }
 
     public List<Nastavnik> findByImeAndPrezime(String ime, String prezime) {

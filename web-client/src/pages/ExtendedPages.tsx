@@ -26,6 +26,7 @@ export function StudentRequestsPage() {
   const dashboard = useApi(meApi.studentDashboard, []);
   const indeksId = String((dashboard.data?.activeIndex as { id?: unknown } | undefined)?.id ?? '');
   const requests = useApi(() => indeksId ? extendedApi.requests(indeksId) : Promise.resolve([]), [indeksId]);
+  const documents = useApi(() => indeksId ? extendedApi.documents(indeksId) : Promise.resolve([]), [indeksId]);
   const [type, setType] = useState('POTVRDA_O_STUDIRANJU');
   const [reason, setReason] = useState('');
   const [message, setMessage] = useState<string | null>(null);
@@ -36,11 +37,17 @@ export function StudentRequestsPage() {
       setReason(''); setMessage('Request submitted.'); await requests.reload();
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Request failed.'); }
   }
-  if (dashboard.loading || requests.loading) return <Loading />;
+  if (dashboard.loading || requests.loading || documents.loading) return <Loading />;
   return <section><section className="card"><h1>Requests and documents</h1><p className="muted">Submit certificates, status changes, withdrawals, and personal-data updates to student services.</p><form className="formGrid" onSubmit={submit}>
     <label>Request type<select value={type} onChange={(e) => setType(e.target.value)}><option>POTVRDA_O_STUDIRANJU</option><option>UVERENJE_O_POLOZENIM_ISPITIMA</option><option>MIROVANJE</option><option>ISPIS</option></select></label>
     <label>Reason<input required value={reason} onChange={(e) => setReason(e.target.value)} /></label><button disabled={!indeksId}>Submit</button>{message && <p>{message}</p>}
-  </form></section>{requests.error ? <ErrorMessage message={requests.error} /> : <section className="card"><h2>Request history</h2><DataTable rows={asRows(requests.data)} columns={requestColumns} empty="You have not submitted any requests." /></section>}</section>;
+  </form></section>{requests.error ? <ErrorMessage message={requests.error} /> : <section className="card"><h2>Request history</h2><DataTable rows={asRows(requests.data)} columns={requestColumns} empty="You have not submitted any requests." /></section>}
+  <section className="card"><h2>Approved documents</h2><DataTable rows={asRows(documents.data)} columns={[
+    { header: 'Name', render: (row: Record<string, unknown>) => pick(row, ['originalName']) },
+    { header: 'Type', render: (row: Record<string, unknown>) => pick(row, ['type']) },
+    { header: 'Created', render: (row: Record<string, unknown>) => pick(row, ['createdAt']) },
+    { header: 'Download', render: (row: Record<string, unknown>) => <a className="buttonLink" href={apiUrl(`/api/requests/documents/${String(row.id)}`)}>Download</a> }
+  ]} empty="No approved documents are ready." /></section></section>;
 }
 
 export function NotificationsPage() {

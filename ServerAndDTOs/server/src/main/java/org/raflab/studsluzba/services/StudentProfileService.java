@@ -83,7 +83,8 @@ public class StudentProfileService {
                 .map(prijavaMappers::toResponse)
                 .collect(Collectors.toList()));
         dto.setStudyEnrollments(upisObnovaService.readUpisi(dashboardIndex.getId()).stream()
-                .map(u -> new UpisanaGodinaDTO(u.getId(), "UPIS", u.getUpisujeGodinu(), u.getDatum(), u.getNapomena()))
+                .map(u -> new UpisanaGodinaDTO(u.getId(), "UPIS", u.getUpisujeGodinu(), u.getDatum(), u.getNapomena(),
+                        u.getSkolskaGodina() == null ? null : u.getSkolskaGodina().getGodina()))
                 .collect(Collectors.toList()));
         dto.setRenewals(upisObnovaService.readObnoveDto(dashboardIndex.getId()));
         dto.setPayments(financeService.ledgerDto(dashboardIndex.getId()));

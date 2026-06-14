@@ -23,6 +23,7 @@ export function AppShell() {
             <NavLink to="/student/exams">Exams</NavLink>
             <NavLink to="/student/payments">Payments</NavLink>
             <NavLink to="/student/grades">Grades</NavLink>
+            <NavLink to="/student/year-enrollment">Upis godine</NavLink>
             <NavLink to="/student/requests">Requests</NavLink>
             <NavLink to="/student/notifications">Notifications</NavLink>
           </>}
@@ -41,6 +42,7 @@ export function AppShell() {
             <NavLink to="/admin/exams">Exams</NavLink>
             {hasPermission('REPORT_EXPORT') && <NavLink to="/admin/reports">Reports</NavLink>}
             {hasPermission('ENROLLMENT_WRITE') && <NavLink to="/admin/enrollments">Enrollments</NavLink>}
+            {hasPermission('ENROLLMENT_WRITE') && <NavLink to="/admin/year-enrollments">Year enrollment requests</NavLink>}
             {hasPermission('DOCUMENT_DECIDE') && <NavLink to="/admin/requests">Student requests</NavLink>}
             {hasPermission('FINANCE_WRITE') && <NavLink to="/admin/payments">Ledger payments</NavLink>}
           </>}

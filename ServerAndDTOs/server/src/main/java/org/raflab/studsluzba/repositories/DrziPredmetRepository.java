@@ -16,6 +16,13 @@ public interface DrziPredmetRepository extends CrudRepository<DrziPredmet, Long>
     DrziPredmet findFirstByRealizacijaPredmetaIdAndNastavnikIdAndUloga(
             Long realizacijaPredmetaId, Long nastavnikId, DrziPredmet.Uloga uloga);
 
+    @Query("select case when count(dp)>0 then true else false end from DrziPredmet dp "
+            + "where dp.predmet.id = :predmetId and dp.nastavnik.id = :nastavnikId "
+            + "and dp.skolskaGodina.id = :sgId")
+    boolean existsProfessorAssignment(@Param("predmetId") Long predmetId,
+                                      @Param("nastavnikId") Long nastavnikId,
+                                      @Param("sgId") Long skolskaGodinaId);
+
     @Query("select dp from DrziPredmet dp where dp.predmet.id = :predmetId and dp.nastavnik.id = :nastavnikId and dp.skolskaGodina.id = :sgId")
     DrziPredmet getDrziPredmetNastavnikPredmetUGodini(@Param("predmetId") Long predmetId,
                                                       @Param("nastavnikId") Long nastavnikId,

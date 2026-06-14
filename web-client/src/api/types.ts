@@ -112,3 +112,69 @@ export interface ProfessorDashboard {
   subjects?: unknown[];
   exams?: unknown[];
 }
+
+export interface SchoolYear {
+  id: number;
+  godina: string;
+  aktivna?: boolean;
+}
+
+export interface EnrollmentSubject {
+  id: number;
+  sifra: string;
+  naziv: string;
+  opis?: string | null;
+  espb?: number | null;
+}
+
+export interface YearEnrollmentEligibility {
+  indeksId: number;
+  currentStudyYear?: number | null;
+  requestedStudyYear?: number | null;
+  programDuration?: number | null;
+  earnedEcts: number;
+  regularEnrollmentThreshold?: number | null;
+  conditionalEnrollmentThreshold?: number | null;
+  suggestedType?: string | null;
+  canSubmit: boolean;
+  message: string;
+  currentSchoolYear?: SchoolYear | null;
+  targetSchoolYear?: SchoolYear | null;
+  passedSubjects: Array<Record<string, unknown>>;
+  transferableSubjects: EnrollmentSubject[];
+}
+
+export interface YearEnrollmentRequestHistory {
+  id: number;
+  oldStatus?: string | null;
+  newStatus: string;
+  note?: string | null;
+  actorUserId?: number | null;
+  createdAt: string;
+}
+
+export interface YearEnrollmentRequest {
+  id: number;
+  indeksId: number;
+  studentName?: string | null;
+  indexLabel?: string | null;
+  type: string;
+  status: string;
+  currentStudyYear: number;
+  requestedStudyYear: number;
+  earnedEctsSnapshot: number;
+  currentSchoolYear: SchoolYear;
+  targetSchoolYear: SchoolYear;
+  contractReceived: boolean;
+  paymentConfirmed: boolean;
+  documentationComplete: boolean;
+  studentNote?: string | null;
+  adminNote?: string | null;
+  approvedEnrollmentId?: number | null;
+  approvedRenewalId?: number | null;
+  submittedAt: string;
+  updatedAt: string;
+  decidedAt?: string | null;
+  transferredSubjects: EnrollmentSubject[];
+  history: YearEnrollmentRequestHistory[];
+}

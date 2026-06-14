@@ -10,6 +10,7 @@ export const adminApi = {
   professors: () => apiRequest<Record<string, unknown>[]>('/api/nastavnik/all'),
   professor: (id: string | number) => apiRequest<Record<string, unknown>>(`/api/nastavnik/${id}`),
   createProfessor: (body: unknown) => apiRequest<number>('/api/nastavnik/add', { method: 'POST', body: JSON.stringify(body) }),
+  provisionProfessor: (id: string | number) => apiRequest<{ professorId: number; accountId: number; username: string; temporaryPassword?: string | null; accountCreated: boolean }>(`/api/nastavnik/${id}/provision-account`, { method: 'POST' }),
   subjects: () => apiRequest<Record<string, unknown>[]>('/api/predmet/all'),
   createSubject: (body: unknown) => apiRequest<number>('/api/predmet/admin/create', { method: 'POST', body: JSON.stringify(body) }),
   assignments: () => apiRequest<Record<string, unknown>[]>('/api/drzi/all'),

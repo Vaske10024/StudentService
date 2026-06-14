@@ -76,6 +76,7 @@ export function StudentDashboardPage() {
   const status = record(data?.status);
   const balance = record(data?.balance);
   const passed = asRows(data?.passedSubjects);
+  const latestEnrollment = asRows(data?.studyEnrollments)[0] ?? {};
   const earnedEcts = passed.reduce((sum, item) => sum + Number(item.espb ?? 0), 0);
   const grades = passed.map((item) => Number(item.ocena)).filter(Number.isFinite);
   const average = grades.length ? (grades.reduce((sum, grade) => sum + grade, 0) / grades.length).toFixed(2) : '—';
@@ -89,6 +90,7 @@ export function StudentDashboardPage() {
       <div className="metricGrid">
         <article className="metricCard"><span>Active index</span><strong>{String(index.studProgramOznaka ?? '—')} {String(index.broj ?? '—')}/{String(index.godina ?? '—')}</strong><small>{String(record(index.studijskiProgram).naziv ?? '')}</small></article>
         <article className="metricCard"><span>School year</span><strong>{String(record(data?.schoolYear).godina ?? '—')}</strong><small>{String(data?.currentSubjects?.length ?? 0)} current subjects</small></article>
+        <article className="metricCard"><span>Current study year</span><strong>{String(latestEnrollment.godina ?? '—')}</strong><small>Enrollment: {String(latestEnrollment.skolskaGodina ?? '—')}</small></article>
         <article className="metricCard"><span>Earned ECTS</span><strong>{earnedEcts}</strong><small>{passed.length} passed subjects</small></article>
         <article className="metricCard"><span>Average grade</span><strong>{average}</strong><small>Across passed subjects</small></article>
         <article className="metricCard"><span>Remaining balance</span><strong>{money(balance.debtEur, 'EUR')}</strong><small>Ledger source of truth</small></article>

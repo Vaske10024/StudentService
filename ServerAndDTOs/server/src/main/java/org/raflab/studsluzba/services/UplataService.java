@@ -10,6 +10,7 @@ import org.raflab.studsluzba.model.StudentIndeks;
 import org.raflab.studsluzba.model.Uplata;
 import org.raflab.studsluzba.model.dtos.SaldoResponse;
 import org.raflab.studsluzba.model.dtos.UplataDTO;
+import org.raflab.studsluzba.model.dtos.FinanceBalanceDTO;
 import org.raflab.studsluzba.repositories.StudentIndeksRepository;
 import org.raflab.studsluzba.repositories.UplataRepository;
 import org.raflab.studsluzba.security.ApiException;
@@ -99,8 +100,8 @@ public class UplataService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
 
-        BigDecimal tuition = tuitionFor(si);
-        BigDecimal preostaloEur = tuition.subtract(ukupnoEur).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+        FinanceBalanceDTO ledgerBalance = financeService.balance(indeksId);
+        BigDecimal preostaloEur = ledgerBalance.getDebtEur().setScale(2, RoundingMode.HALF_UP);
         ExchangeRate current = fetchKurs(LocalDate.now());
         BigDecimal preostaloRsd = preostaloEur.multiply(current.getValue()).setScale(2, RoundingMode.HALF_UP);
 

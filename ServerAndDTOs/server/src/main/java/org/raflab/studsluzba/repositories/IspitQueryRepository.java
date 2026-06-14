@@ -88,4 +88,10 @@ public interface IspitQueryRepository extends CrudRepository<PrijavaIspita, Long
 
     @Query("select avg(pi.ocena) from PrijavaIspita pi where pi.student.id = :studentIndeksId and pi.ponisteno = false and pi.ocena between 6 and 10")
     Double averagePassedGrade(@Param("studentIndeksId") Long studentIndeksId);
+
+    @Query("select pi from PrijavaIspita pi where pi.student.id = :studentIndeksId "
+            + "and pi.ponisteno = false and pi.ocena between 6 and 10")
+    List<PrijavaIspita> passedAttemptsForStudent(@Param("studentIndeksId") Long studentIndeksId);
+
+    List<PrijavaIspita> findByIspitId(Long ispitId);
 }

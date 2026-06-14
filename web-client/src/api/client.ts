@@ -52,6 +52,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   if (!res.ok) {
     if (res.status === 401) window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { status: res.status, body } }));
     if (res.status === 403) window.dispatchEvent(new CustomEvent('auth:forbidden', { detail: { status: res.status, body } }));
+    if (res.status === 403 && body?.code === 'MUST_CHANGE_PASSWORD') window.dispatchEvent(new CustomEvent('auth:must-change-password'));
     throw new ApiError(res.status, body);
   }
   return body as T;

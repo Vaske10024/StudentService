@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;import java.time.LocalDateTime;imp
 public class ScheduleService {
  private final RoomRepository roomRepo;private final StudentGroupRepository groupRepo;private final ClassSessionRepository sessionRepo;
  private final ExamRoomAssignmentRepository assignmentRepo;private final NastavnikRepository professorRepo;private final IspitRepository examRepo;
+ private final StudentIndeksRepository indeksRepo;private final StudentGroupMembershipRepository membershipRepo;
  public ClassSession createSession(String title,Long roomId,Long groupId,Long professorId,LocalDateTime start,LocalDateTime end){
   if(start==null||end==null||!end.isAfter(start))throw ApiException.badRequest("Kraj termina mora biti posle pocetka.");
   if(!sessionRepo.conflicts(start,end,roomId,professorId,groupId).isEmpty())throw ApiException.conflict("SCHEDULE_CONFLICT","Termin se preklapa za salu, profesora ili grupu.");
@@ -24,6 +25,11 @@ public class ScheduleService {
  }
  public Room createRoom(String code,int capacity,String location){if(capacity<1)throw ApiException.badRequest("Kapacitet mora biti pozitivan.");Room r=new Room();r.setCode(code);r.setCapacity(capacity);r.setLocation(location);return roomRepo.save(r);}
  public StudentGroup createGroup(String code,String name){StudentGroup g=new StudentGroup();g.setCode(code);g.setName(name);return groupRepo.save(g);}
+ public StudentGroupMembership addStudentToGroup(Long groupId,Long indeksId){
+  if(membershipRepo.existsByStudentGroupIdAndStudentIndeksId(groupId,indeksId))throw ApiException.conflict("GROUP_MEMBERSHIP_EXISTS","Student je već član grupe.");
+  StudentGroupMembership m=new StudentGroupMembership();m.setStudentGroup(groupRepo.findById(groupId).orElseThrow(()->ApiException.notFound("Grupa ne postoji.")));
+  m.setStudentIndeks(indeksRepo.findById(indeksId).orElseThrow(()->ApiException.notFound("Indeks ne postoji.")));return membershipRepo.save(m);
+ }
  public List<ClassSession> groupCalendar(Long groupId){return sessionRepo.findByStudentGroupIdOrderByStartsAt(groupId);}
  public String groupCalendarIcs(Long groupId){StringBuilder s=new StringBuilder("BEGIN:VCALENDAR\r\nVERSION:2.0\r\n");for(ClassSession item:groupCalendar(groupId)){s.append("BEGIN:VEVENT\r\nUID:session-").append(item.getId()).append("\r\nDTSTART:").append(item.getStartsAt().toString().replace("-","").replace(":","")).append("\r\nDTEND:").append(item.getEndsAt().toString().replace("-","").replace(":","")).append("\r\nSUMMARY:").append(item.getTitle()).append("\r\nEND:VEVENT\r\n");}return s.append("END:VCALENDAR\r\n").toString();}
 }

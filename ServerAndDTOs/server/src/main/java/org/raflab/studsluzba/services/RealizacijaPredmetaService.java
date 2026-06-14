@@ -33,7 +33,14 @@ public class RealizacijaPredmetaService {
     }
 
     public List<RealizacijaPredmeta> ensureForEnrollment(Long programId, int godinaStudija) {
-        SkolskaGodina sg = activeSchoolYear();
+        return ensureForEnrollment(programId, godinaStudija, activeSchoolYear());
+    }
+
+    public List<RealizacijaPredmeta> ensureForEnrollment(Long programId, int godinaStudija, Long skolskaGodinaId) {
+        return ensureForEnrollment(programId, godinaStudija, requireSchoolYear(skolskaGodinaId));
+    }
+
+    private List<RealizacijaPredmeta> ensureForEnrollment(Long programId, int godinaStudija, SkolskaGodina sg) {
         List<ProgramPredmet> plan = programPredmetRepo
                 .findByProgramIdAndGodinaStudijaOrderBySemestarUGodini(programId, godinaStudija);
         if (plan.isEmpty()) {

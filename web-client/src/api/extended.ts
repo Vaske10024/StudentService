@@ -4,6 +4,7 @@ export const extendedApi = {
   notifications: () => apiRequest<unknown[]>('/api/notifications'),
   markNotificationRead: (id: string | number) => apiRequest(`/api/notifications/${id}/read`, { method: 'PATCH' }),
   requests: (indeksId: string) => apiRequest<unknown[]>(`/api/requests?indeksId=${encodeURIComponent(indeksId)}`),
+  documents: (indeksId: string) => apiRequest<unknown[]>(`/api/requests/documents?indeksId=${encodeURIComponent(indeksId)}`),
   createRequest: (body: unknown) => apiRequest('/api/requests', { method: 'POST', body: JSON.stringify(body) }),
   adminRequests: () => apiRequest<unknown[]>('/api/requests/admin'),
   decideRequest: (id: string | number, approved: boolean, note: string) =>

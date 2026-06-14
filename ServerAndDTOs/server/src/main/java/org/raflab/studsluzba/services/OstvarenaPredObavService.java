@@ -10,6 +10,11 @@ import org.raflab.studsluzba.repositories.IspitRepository;
 import org.raflab.studsluzba.repositories.OstvarenaPredObavRepository;
 import org.raflab.studsluzba.repositories.PredispitnaObavezaRepository;
 import org.raflab.studsluzba.repositories.StudentIndeksRepository;
+import org.raflab.studsluzba.repositories.SlusaPredmetRepository;
+import org.raflab.studsluzba.repositories.DrziPredmetRepository;
+import org.raflab.studsluzba.model.ispiti.DrziPredmet;
+import org.raflab.studsluzba.model.dtos.PredispitGradebookDTO;
+import org.raflab.studsluzba.model.dtos.PredispitStudentScoreDTO;
 import org.raflab.studsluzba.security.ApiException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.function.Function;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +34,8 @@ public class OstvarenaPredObavService {
     private final PredispitnaObavezaRepository poRepo;
     private final StudentIndeksRepository indeksRepo;
     private final IspitRepository ispitRepo;
+    private final SlusaPredmetRepository slusaRepo;
+    private final DrziPredmetRepository drziRepo;
 
     @Transactional(readOnly = true)
     public int ukupniPoeni(Long studentIndeksId, Long predmetId, Long skolskaGodinaId) {
@@ -45,6 +54,10 @@ public class OstvarenaPredObavService {
         }
         Long predmetId = po.getPredmet() == null ? null : po.getPredmet().getId();
         Long sgId = po.getSkolskaGodina() == null ? null : po.getSkolskaGodina().getId();
+        if (predmetId == null || sgId == null || !slusaRepo.existsStudentSlusaPredmetUGodini(studentIndeksId, predmetId, sgId)) {
+            throw ApiException.conflict("STUDENT_NOT_ENROLLED_IN_SUBJECT",
+                    "Student ne sluša predmet ove predispitne obaveze u izabranoj školskoj godini.");
+        }
         if (predmetId != null && sgId != null && ispitRepo.existsLockedForPredmetAndSkolskaGodina(predmetId, sgId)) {
             throw ApiException.conflict("Postoji zaključan ispit; predispitni poeni se ne mogu menjati normalnim tokom.");
         }
@@ -69,6 +82,35 @@ public class OstvarenaPredObavService {
                     return new DetaljDTO(def.getId(), def.getVrsta(), def.getMaxPoeni(), osvojeni);
                 })
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<PredispitGradebookDTO> gradebook(Long drziPredmetId) {
+        DrziPredmet assignment = drziRepo.findById(drziPredmetId)
+                .orElseThrow(() -> ApiException.notFound("Nastavna dodela ne postoji: " + drziPredmetId));
+        if (assignment.getPredmet() == null || assignment.getSkolskaGodina() == null) {
+            throw ApiException.conflict("ASSIGNMENT_INCOMPLETE", "Nastavna dodela nema predmet ili školsku godinu.");
+        }
+        List<StudentIndeks> students = slusaRepo.getStudentiSlusaPredmetZaDrziPredmet(drziPredmetId);
+        return poRepo.findByPredmetIdAndSkolskaGodinaId(assignment.getPredmet().getId(), assignment.getSkolskaGodina().getId())
+                .stream().map(definition -> {
+                    Map<Long, OstvarenaPredObav> scores = repo.findByObavezaId(definition.getId()).stream()
+                            .collect(Collectors.toMap(item -> item.getStudent().getId(), Function.identity()));
+                    List<PredispitStudentScoreDTO> rows = students.stream().map(student -> {
+                        OstvarenaPredObav score = scores.get(student.getId());
+                        return new PredispitStudentScoreDTO(
+                                student.getId(),
+                                student.getStudent() == null ? null : student.getStudent().getId(),
+                                student.getStudent() == null ? null : student.getStudent().getIme(),
+                                student.getStudent() == null ? null : student.getStudent().getPrezime(),
+                                student.getStudProgramOznaka(),
+                                student.getBroj(),
+                                student.getGodina(),
+                                score == null ? 0 : score.getOsvojeniPoeni()
+                        );
+                    }).collect(Collectors.toList());
+                    return new PredispitGradebookDTO(definition.getId(), definition.getVrsta(), definition.getMaxPoeni(), rows);
+                }).collect(Collectors.toList());
     }
 
     @Data

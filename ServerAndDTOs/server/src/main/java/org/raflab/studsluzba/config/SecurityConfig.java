@@ -2,6 +2,7 @@ package org.raflab.studsluzba.config;
 
 import lombok.RequiredArgsConstructor;
 import org.raflab.studsluzba.security.UserAccountDetailsService;
+import org.raflab.studsluzba.security.MustChangePasswordFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,6 +16,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -29,6 +31,7 @@ import java.util.Collections;
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final UserAccountDetailsService userDetailsService;
+    private final MustChangePasswordFilter mustChangePasswordFilter;
 
     @Value("${app.cors.allowed-origins:http://localhost:5173}")
     private String allowedOrigins;
@@ -82,9 +85,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/student/profile/**", "/api/student/webprofile/**").authenticated()
                 .antMatchers("/api/student/query/**").hasRole("ADMIN")
 
-                .antMatchers(HttpMethod.POST, "/api/nastavnik/add").hasRole("ADMIN")
+                .antMatchers(HttpMethod.POST, "/api/nastavnik/**").hasRole("ADMIN")
                 .antMatchers("/api/nastavnik/zvanje/**").hasRole("ADMIN")
-                .antMatchers("/api/nastavnik/**").hasAnyRole("ADMIN", "PROFESSOR")
+                .antMatchers("/api/nastavnik/**").hasRole("ADMIN")
 
                 .antMatchers("/api/predmet/admin/**").hasRole("ADMIN")
                 .antMatchers(HttpMethod.POST, "/api/program/**").hasRole("ADMIN")
@@ -99,6 +102,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/sg/**").authenticated()
 
                 .antMatchers("/api/studij/**").hasRole("ADMIN")
+                .antMatchers("/api/enrollment/year-requests/me/**").hasRole("STUDENT")
+                .antMatchers("/api/enrollment/year-requests/admin/**").hasRole("ADMIN")
                 .antMatchers(HttpMethod.POST, "/api/uplate/dodaj").hasRole("ADMIN")
                 .antMatchers("/api/uplate/list", "/api/uplate/saldo").authenticated()
 
@@ -125,6 +130,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers(HttpMethod.POST, "/api/srednja/**", "/api/visoka/**").hasRole("ADMIN")
                 .antMatchers("/api/srednja/**", "/api/visoka/**").hasRole("ADMIN")
                 .antMatchers("/actuator/**").hasRole("ADMIN")
+                .antMatchers("/api/security/**", "/api/audit/**", "/api/settings/**", "/api/academic/**", "/api/reports/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             .and()
             .exceptionHandling()
@@ -135,5 +141,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .httpBasic().disable()
             .logout().disable()
             .sessionManagement().sessionFixation().migrateSession();
+        http.addFilterAfter(mustChangePasswordFilter, UsernamePasswordAuthenticationFilter.class);
     }
 }

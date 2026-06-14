@@ -7,6 +7,14 @@ import org.springframework.stereotype.Service;
 @Service @RequiredArgsConstructor
 public class ECTSRuleService {
     private final ECTSRuleRepository repo;
+
+    public int minimumEctsFor(StudentIndeks indeks, int targetYear, int fallback) {
+        if (indeks.getStudijskiProgram() == null) return fallback;
+        return repo.findByProgramIdAndTargetYear(indeks.getStudijskiProgram().getId(), targetYear)
+                .map(rule -> rule.getMinimumEcts() == null ? fallback : rule.getMinimumEcts())
+                .orElse(fallback);
+    }
+
     public void assertEnrollmentAllowed(StudentIndeks indeks, int targetYear, boolean override, String overrideReason) {
         if (targetYear <= 1 || indeks.getStudijskiProgram() == null) return;
         repo.findByProgramIdAndTargetYear(indeks.getStudijskiProgram().getId(), targetYear).ifPresent(rule -> {
