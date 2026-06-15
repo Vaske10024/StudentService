@@ -7,7 +7,7 @@ import { DataTable } from '../components/DataTable';
 import { Modal } from '../components/Modal';
 import { ErrorMessage, Loading } from '../components/Status';
 import { useApi } from '../hooks/useApi';
-import { asRows, JsonBlock, pick } from './dataHelpers';
+import { asRows, pick } from './dataHelpers';
 
 const subjectColumns = [
   { header: 'Assignment', render: (row: Record<string, unknown>) => pick(row, ['id', 'drziPredmetId']) },
@@ -58,13 +58,18 @@ export function ProfessorDashboardPage() {
   const { data, loading, error } = useApi(meApi.professorDashboard, []);
   if (loading) return <Loading />;
   if (error) return <ErrorMessage message={error} />;
+  const subjectCount = asRows(data?.subjects).length;
+  const examCount = asRows(data?.exams).length;
   return (
     <section>
-      <h1>Professor dashboard</h1>
-      <div className="gridCards">
-        <article className="card"><h2>Account</h2><JsonBlock value={data?.user ?? null} /></article>
-        <article className="card"><h2>Subjects</h2><p className="metric">{asRows(data?.subjects).length}</p></article>
-        <article className="card"><h2>Exams</h2><p className="metric">{asRows(data?.exams).length}</p></article>
+      <header className="pageHeader">
+        <div><p className="eyebrow">Teaching overview</p><h1>Professor dashboard</h1><p className="muted">Your active teaching assignments, exams, and result workflows.</p></div>
+        <span className="statusBadge">Professor account</span>
+      </header>
+      <div className="metricGrid">
+        <article className="metricCard"><span>Assigned subjects</span><strong>{subjectCount}</strong><small>Active teaching assignments</small></article>
+        <article className="metricCard"><span>Scheduled exams</span><strong>{examCount}</strong><small>Exams available in your workspace</small></article>
+        <article className="metricCard"><span>Result workflow</span><strong>Ready</strong><small>Enter points and lock final results</small></article>
       </div>
       <section className="card"><h2>My subjects</h2><DataTable rows={asRows(data?.subjects)} columns={subjectColumns} /></section>
       <section className="card"><h2>My exams</h2><DataTable rows={asRows(data?.exams)} columns={examColumns} /></section>

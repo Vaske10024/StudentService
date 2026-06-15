@@ -6,16 +6,16 @@ export interface Column<T> {
 }
 
 export function DataTable<T>({ rows, columns, empty = 'No data.' }: { rows: T[]; columns: Column<T>[]; empty?: string }) {
-  if (!rows.length) return <p className="muted">{empty}</p>;
+  if (!rows.length) return <div className="emptyState" role="status"><span aria-hidden="true">i</span><p>{empty}</p></div>;
   return (
-    <div className="tableWrap">
+    <div className="tableWrap" role="region" aria-label="Data table" tabIndex={0}>
       <table>
         <thead>
-          <tr>{columns.map((c) => <th key={c.header}>{c.header}</th>)}</tr>
+          <tr>{columns.map((column) => <th key={column.header}>{column.header}</th>)}</tr>
         </thead>
         <tbody>
-          {rows.map((row, idx) => (
-            <tr key={idx}>{columns.map((c) => <td key={c.header}>{c.render(row)}</td>)}</tr>
+          {rows.map((row, rowIndex) => (
+            <tr key={rowIndex}>{columns.map((column) => <td key={column.header}>{column.render(row)}</td>)}</tr>
           ))}
         </tbody>
       </table>

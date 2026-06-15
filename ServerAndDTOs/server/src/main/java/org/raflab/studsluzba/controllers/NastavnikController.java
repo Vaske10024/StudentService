@@ -2,7 +2,6 @@ package org.raflab.studsluzba.controllers;
 
 
 import java.util.List;
-import java.util.Optional;
 
 import org.raflab.studsluzba.model.dtos.NastavnikLiteDTO;
 import org.raflab.studsluzba.model.dtos.NastavnikRequest;
@@ -57,9 +56,7 @@ public class NastavnikController {
     @GetMapping(path = "/{id}")
     public NastavnikResponse getNastavnikById(@PathVariable Long id)
     {
-        Optional<Nastavnik> rez = nastavnikService.findById(id);
-
-        return rez.map(Converters::toNastavnikResponse).orElse(null);
+        return nastavnikService.details(id);
     }
 
     @GetMapping("/search")

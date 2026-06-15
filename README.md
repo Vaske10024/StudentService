@@ -153,6 +153,89 @@ After login, the frontend uses ownership-safe `/api/me/student/**` endpoints. Th
 
 If the student account is not linked to an index, `/api/me/student/**` requests are rejected. If the student has no active-year enrollment, current subjects remain empty until the admin enrolls the study year.
 
+## Docker setup
+
+The complete local stack can run through Docker Compose without installing Java, Maven, Node.js, or MySQL on the host. Docker builds the multi-module backend from `ServerAndDTOs/`, builds the Vite frontend with `npm ci`, and serves the frontend through nginx.
+
+For a quick local start using development-only default credentials:
+
+```bash
+docker compose up --build
+```
+
+To customize credentials or ports, copy `.env.example` to `.env`, replace the example passwords, and then start the stack:
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+On Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --build
+```
+
+Run in the background with `docker compose up --build -d`. Stop and remove containers and the network with:
+
+```bash
+docker compose down
+```
+
+To also permanently delete the local MySQL data volume:
+
+```bash
+docker compose down -v
+```
+
+After startup:
+
+- frontend: `http://localhost:5173`
+- backend: `http://localhost:8080`
+- MySQL: `localhost:3306`
+
+The production frontend image serves the React SPA and proxies browser requests under `/api` to `backend:8080`. This keeps frontend API calls, session cookies, and CSRF requests on the same browser origin. Direct backend access on port `8080` remains available for API diagnostics.
+
+### Docker environment variables
+
+| Variable | Purpose | Local default |
+|---|---|---|
+| `MYSQL_DATABASE` | MySQL database created on first startup | `studentski_servis` |
+| `MYSQL_USER` | MySQL application user and backend DB username | `student_service` |
+| `MYSQL_PASSWORD` | Password for the MySQL application user | development-only Compose default |
+| `MYSQL_ROOT_PASSWORD` | MySQL root password used to initialize and health-check MySQL | development-only Compose default |
+| `MYSQL_PORT` | MySQL host port | `3306` |
+| `BACKEND_PORT` | Backend host port | `8080` |
+| `FRONTEND_PORT` | Frontend host port | `5173` |
+| `SPRING_PROFILES_ACTIVE` | Active Spring profile | `dev` |
+| `DEMO_DATA_ENABLED` | Enables the DEV-only full workflow demo seed | `false` |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated origins allowed to call the backend directly | `http://localhost:5173` |
+| `BOOTSTRAP_ADMIN_USERNAME` | Username used only when creating the first admin account | `admin@example.local` |
+| `BOOTSTRAP_ADMIN_PASSWORD` | Password used only when creating the first admin account | development-only Compose default |
+
+Compose sets the backend `DB_URL` to `jdbc:mysql://mysql:3306/<MYSQL_DATABASE>?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC`, where `mysql` is the Compose service name. The `dev` profile is intentional for local Docker because it uses Hibernate schema updates and does not require a pre-migrated production database. Use the existing `prod` profile only with a schema prepared by the Flyway migrations and HTTPS-compatible secure-cookie settings.
+
+Do not use the Compose default passwords outside an isolated local machine. The first admin is created only if no admin exists; remove `BOOTSTRAP_ADMIN_USERNAME` and `BOOTSTRAP_ADMIN_PASSWORD` from `.env` after successful bootstrap when using a persistent environment.
+
+### Docker troubleshooting
+
+**Port `3306`, `8080`, or `5173` is already in use**
+
+Change the corresponding `MYSQL_PORT`, `BACKEND_PORT`, or `FRONTEND_PORT` in `.env`, then run `docker compose up --build` again. If `FRONTEND_PORT` changes, also set `CORS_ALLOWED_ORIGINS` to the new frontend URL. The frontend's nginx `/api` proxy continues to work regardless of the chosen host ports.
+
+**Backend cannot connect to MySQL**
+
+Run `docker compose ps` and confirm that `mysql` is healthy, then inspect `docker compose logs mysql backend`. The backend must use `mysql:3306`, not `localhost:3306`, inside Compose. If database credentials were changed after the volume was initialized, recreate the local database with `docker compose down -v` and start again; this deletes existing local data.
+
+**Frontend cannot reach the backend**
+
+Inspect `docker compose logs frontend backend` and open `http://localhost:5173/api/auth/csrf`. A successful response confirms the nginx-to-backend route. Browser requests should use relative `/api/...` paths; `http://backend:8080` is only resolvable inside the Compose network.
+
+**CORS or session-cookie problem**
+
+Use the frontend URL consistently instead of mixing `localhost` and `127.0.0.1`. For direct calls to port `8080`, ensure the exact browser origin is listed in `CORS_ALLOWED_ORIGINS` and that requests include credentials. Local Docker uses the `dev` profile and non-secure cookies over HTTP; the `prod` profile enables secure session cookies and therefore requires HTTPS.
+
 ## Backend setup
 
 From `ServerAndDTOs/`:
@@ -486,6 +569,39 @@ Produkcijska sema se prosiruje migracijom `V11__study_year_enrollment_requests.s
 - ESPB se racuna iz polozenih/priznatih `PrijavaIspita`; `StudentIndeks.ostvarenoEspb` je cached vrednost koja se osvezava pri zakljucavanju rezultata i admin approval-u.
 - Migraciju treba proveriti na tacnoj produkcijskoj MySQL verziji i realnom backup-u pre pustanja.
 - Sledeci koraci su konfiguracija pragova kroz admin UI, upload dokumenata, povezivanje payment flaga sa ledger pravilima i detaljniji izvestaji/audit dashboard.
+
+## Demo seed data
+
+Kompletan demo dataset postoji samo za Spring `dev` profil i podrazumevano je iskljucen. Ukljucuje se promenljivom:
+
+```bash
+DEMO_DATA_ENABLED=true
+```
+
+ili direktnim Spring property-jem:
+
+```bash
+--spring.profiles.active=dev --app.seed.demo-data.enabled=true
+```
+
+Initializer `DevDemoDataInitializer` ne postoji u `prod` ni `test` profilu bez eksplicitnog ukljucivanja. Radi u jednoj transakciji, koristi jedinstvena poslovna polja i cuva verzionisani marker, pa drugi start ne pravi duplikate. Dataset koristi aktivnu skolsku godinu `2025/26`, ciljnu `2026/27`, program `SI` sa 40 predmeta i zajednicku lozinku `DemoPass123!`.
+
+| Uloga / scenario | Username | Opis |
+|---|---|---|
+| Admin | `admin@demo.edu` | Svi admin i permission-gated ekrani |
+| Profesor | `marko.aleksic@demo.edu` | Predmeti, studenti, ispiti i predispitne obaveze |
+| Profesor | `jelena.jovanovic@demo.edu` | Predmeti, studenti, ispiti i predispitne obaveze |
+| Profesor | `nikola.petrovic@demo.edu` | Predmeti, studenti, ispiti i predispitne obaveze |
+| Brucos | `student.freshman@demo.edu` | Aktivni predmeti, otvorena prijava ispita i mali saldo |
+| Dobar student | `student.good@demo.edu` | Ocene 8/9/10, 96 ESPB, istorija i redovan upis |
+| Uslovni upis | `student.conditional@demo.edu` | 42 ESPB, nepolozeni predmeti i `CONDITIONAL_ENROLLMENT` |
+| Obnova godine | `student.renewal@demo.edu` | 18 ESPB, vise prenetih predmeta i `RENEW_YEAR` |
+| Student sa dugom | `student.debt@demo.edu` | Dug od 1.500 EUR blokira prijavu ispita |
+| Zahtev na cekanju | `student.pendingrequest@demo.edu` | Kompletan zahtev koji ceka admin approval |
+
+Pokriveni su realizacije i angazovanja profesora, slusanje predmeta, otvoreni/prosli/buduci rokovi, polozene/pale/odsutne/odjavljene prijave, gradebook sa ukupno 30 predispitnih poena, konzistentan ledger (placeno, dug, delimicna uplata i preplata), zahtevi za upis godine u vise statusa, dokumenti i potvrde, prijave za upis, sale, grupe, raspored i procitane/neprocitane notifikacije.
+
+> Demo seed nije namenjen produkciji. Nemojte ukljucivati `app.seed.demo-data.enabled` uz `prod` profil.
 
 ## Verification
 

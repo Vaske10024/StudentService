@@ -36,6 +36,7 @@ export function LoginPage() {
   return (
     <main className="loginPage">
       <form className="card loginCard" onSubmit={submit}>
+        <p className="eyebrow">Academic administration portal</p>
         <h1>Student Service</h1>
         <p className="muted">Sign in with your student, professor, or admin account.</p>
         <label>

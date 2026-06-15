@@ -54,13 +54,17 @@ export function AdminDashboardPage() {
     ['Professor assignments', asRows(assignments.data).length > 0],
     ['Exam periods', asRows(periods.data).length > 0]
   ] as const;
+  const readyCount = checklist.filter(([, ready]) => ready).length;
   return (
     <section>
-      <h1>Admin dashboard</h1>
-      <div className="gridCards">
-        <article className="card"><h2>Students</h2>{students.loading ? <Loading /> : <p className="metric">{pageRows(students.data).length}</p>}</article>
-        <article className="card"><h2>Study programs</h2>{programs.loading ? <Loading /> : <p className="metric">{pageRows(programs.data).length}</p>}</article>
-        <article className="card"><h2>Security</h2><p className="muted">Admin routes call protected backend endpoints only.</p></article>
+      <header className="pageHeader">
+        <div><p className="eyebrow">Administration overview</p><h1>Admin dashboard</h1><p className="muted">Monitor academic setup and open the areas that need attention.</p></div>
+        <span className="statusBadge">{readyCount} of {checklist.length} setup checks ready</span>
+      </header>
+      <div className="metricGrid">
+        <article className="metricCard"><span>Recent students</span><strong>{students.loading ? '...' : pageRows(students.data).length}</strong><small>Records loaded in dashboard preview</small></article>
+        <article className="metricCard"><span>Study programs</span><strong>{programs.loading ? '...' : pageRows(programs.data).length}</strong><small>Configured academic programs</small></article>
+        <article className="metricCard"><span>Academic setup</span><strong>{readyCount}/{checklist.length}</strong><small>Required configuration checks ready</small></article>
       </div>
       <section className="card"><h2>Academic setup checklist</h2><p className="muted">Pipeline readiness for the active academic year.</p><div className="gridCards">{checklist.map(([label, ready]) => <article className="metricCard" key={label}><span>{label}</span><strong>{ready ? 'Ready' : 'Missing'}</strong></article>)}</div></section>
     </section>

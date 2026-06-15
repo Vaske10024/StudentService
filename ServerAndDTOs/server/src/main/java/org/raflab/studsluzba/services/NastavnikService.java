@@ -3,9 +3,11 @@ package org.raflab.studsluzba.services;
 import lombok.RequiredArgsConstructor;
 import org.raflab.studsluzba.model.Nastavnik;
 import org.raflab.studsluzba.model.dtos.NastavnikLiteDTO;
+import org.raflab.studsluzba.model.dtos.NastavnikResponse;
 import org.raflab.studsluzba.model.dtos.ProfessorProvisionDTO;
 import org.raflab.studsluzba.repositories.NastavnikRepository;
 import org.raflab.studsluzba.security.ApiException;
+import org.raflab.studsluzba.utils.Converters;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
@@ -43,6 +45,13 @@ public class NastavnikService {
 
     public Optional<Nastavnik> findById(Long id) {
         return nastavnikRepository.findById(id);
+    }
+
+    @Transactional
+    public NastavnikResponse details(Long id) {
+        return nastavnikRepository.findById(id)
+                .map(Converters::toNastavnikResponse)
+                .orElse(null);
     }
 
     @Transactional
