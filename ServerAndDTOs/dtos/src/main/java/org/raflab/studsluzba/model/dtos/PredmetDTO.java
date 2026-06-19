@@ -14,4 +14,16 @@ public class PredmetDTO {
     private String opis;
     private Integer espb;
     private String studProgramOznaka; // ako postoji
+    private Integer predispitniPoeni;
+    private Integer ispitniPoeni;
+    private Integer ukupnoPoena;
+
+    public PredmetDTO(Long id, String sifra, String naziv, String opis, Integer espb, String studProgramOznaka) {
+        this.id = id;
+        this.sifra = sifra;
+        this.naziv = naziv;
+        this.opis = opis;
+        this.espb = espb;
+        this.studProgramOznaka = studProgramOznaka;
+    }
 }

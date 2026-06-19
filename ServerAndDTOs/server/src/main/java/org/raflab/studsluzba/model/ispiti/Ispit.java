@@ -5,6 +5,7 @@ import org.raflab.studsluzba.model.Nastavnik;
 
 import javax.persistence.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Set;
 
@@ -47,6 +48,10 @@ public class Ispit {
 
     @Column(name = "vreme_pocetka")
     private LocalTime vremePocetka;
+
+    private LocalDateTime registrationStart;
+    private LocalDateTime registrationEnd;
+    private LocalDateTime cancellationEnd;
 
     @OneToMany(mappedBy = "ispit", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<PrijavaIspita> prijave;

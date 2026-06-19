@@ -272,30 +272,46 @@ public class IspitCommandService {
     }
 
     private void validateRegistrationWindow(Ispit ispit) {
+        LocalDateTime registrationStart = effectiveRegistrationStart(ispit);
+        LocalDateTime registrationEnd = effectiveRegistrationEnd(ispit);
         if (ispit.getIspitniRok() == null || !ispit.getIspitniRok().isActive()
-                || ispit.getIspitniRok().getRegistrationStart() == null
-                || ispit.getIspitniRok().getRegistrationEnd() == null) {
+                || registrationStart == null || registrationEnd == null) {
             throw ApiException.conflict("REGISTRATION_WINDOW_NOT_CONFIGURED",
                     "Prozor za prijavu ispita nije konfigurisan.");
         }
         LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(ispit.getIspitniRok().getRegistrationStart())) {
+        if (now.isBefore(registrationStart)) {
             throw ApiException.conflict("REGISTRATION_NOT_OPEN", "Prijava ispita jos nije otvorena.");
         }
-        if (now.isAfter(ispit.getIspitniRok().getRegistrationEnd())) {
+        if (now.isAfter(registrationEnd)) {
             throw ApiException.conflict("REGISTRATION_CLOSED", "Rok za prijavu ispita je istekao.");
         }
     }
 
     private void validateCancellationWindow(PrijavaIspita pi) {
-        if (pi.getIspit() == null || pi.getIspit().getIspitniRok() == null
-                || pi.getIspit().getIspitniRok().getCancellationEnd() == null) {
+        LocalDateTime cancellationEnd = pi.getIspit() == null ? null : effectiveCancellationEnd(pi.getIspit());
+        if (pi.getIspit() == null || pi.getIspit().getIspitniRok() == null || cancellationEnd == null) {
             throw ApiException.conflict("CANCELLATION_WINDOW_NOT_CONFIGURED",
                     "Prozor za odjavu ispita nije konfigurisan.");
         }
-        if (LocalDateTime.now().isAfter(pi.getIspit().getIspitniRok().getCancellationEnd())) {
+        if (LocalDateTime.now().isAfter(cancellationEnd)) {
             throw ApiException.conflict("CANCELLATION_CLOSED", "Rok za odjavu ispita je istekao.");
         }
+    }
+
+    private LocalDateTime effectiveRegistrationStart(Ispit ispit) {
+        if (ispit.getRegistrationStart() != null) return ispit.getRegistrationStart();
+        return ispit.getIspitniRok() == null ? null : ispit.getIspitniRok().getRegistrationStart();
+    }
+
+    private LocalDateTime effectiveRegistrationEnd(Ispit ispit) {
+        if (ispit.getRegistrationEnd() != null) return ispit.getRegistrationEnd();
+        return ispit.getIspitniRok() == null ? null : ispit.getIspitniRok().getRegistrationEnd();
+    }
+
+    private LocalDateTime effectiveCancellationEnd(Ispit ispit) {
+        if (ispit.getCancellationEnd() != null) return ispit.getCancellationEnd();
+        return ispit.getIspitniRok() == null ? null : ispit.getIspitniRok().getCancellationEnd();
     }
 
     private void requireReason(String reason) {

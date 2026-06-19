@@ -16,7 +16,7 @@ public class GradingService {
     @Value("${grading.exam.max-points:70}")
     private int examMaxPoints;
 
-    @Value("${grading.predispit.max-total-points:30}")
+    @Value("${grading.predispit.max-total-points:100}")
     private int predispitMaxTotalPoints;
 
     public int getExamMaxPoints() {

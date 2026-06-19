@@ -66,6 +66,9 @@ public class IspitniRokController {
                     dto.setIspitniRokId(rok.getId());
                     dto.setRokDatumPocetka(rok.getDatumPocetka());
                     dto.setRokDatumZavrsetka(rok.getDatumZavrsetka());
+                    dto.setRegistrationStart(i.getRegistrationStart() != null ? i.getRegistrationStart() : rok.getRegistrationStart());
+                    dto.setRegistrationEnd(i.getRegistrationEnd() != null ? i.getRegistrationEnd() : rok.getRegistrationEnd());
+                    dto.setCancellationEnd(i.getCancellationEnd() != null ? i.getCancellationEnd() : rok.getCancellationEnd());
 
                     if (i.getDrziPredmet() != null) {
                         dto.setDrziPredmetId(i.getDrziPredmet().getId());
@@ -105,6 +108,18 @@ public class IspitniRokController {
         dto.setDatumOdrzavanja(i.getDatumOdrzavanja());
         dto.setVremePocetka(i.getVremePocetka());
         dto.setZakljucen(i.isZakljucen());
+        if (i.getIspitniRok() != null) {
+            dto.setIspitniRokId(i.getIspitniRok().getId());
+            dto.setRokDatumPocetka(i.getIspitniRok().getDatumPocetka());
+            dto.setRokDatumZavrsetka(i.getIspitniRok().getDatumZavrsetka());
+            dto.setRegistrationStart(i.getRegistrationStart() != null ? i.getRegistrationStart() : i.getIspitniRok().getRegistrationStart());
+            dto.setRegistrationEnd(i.getRegistrationEnd() != null ? i.getRegistrationEnd() : i.getIspitniRok().getRegistrationEnd());
+            dto.setCancellationEnd(i.getCancellationEnd() != null ? i.getCancellationEnd() : i.getIspitniRok().getCancellationEnd());
+        } else {
+            dto.setRegistrationStart(i.getRegistrationStart());
+            dto.setRegistrationEnd(i.getRegistrationEnd());
+            dto.setCancellationEnd(i.getCancellationEnd());
+        }
         return dto;
     }
 }

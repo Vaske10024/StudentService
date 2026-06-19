@@ -37,6 +37,9 @@ const passedColumns = [
   { header: 'Code', render: (row: Record<string, unknown>) => pick(row, ['sifra']) },
   { header: 'Subject', render: (row: Record<string, unknown>) => pick(row, ['naziv']) },
   { header: 'ECTS', render: (row: Record<string, unknown>) => pick(row, ['espb']) },
+  { header: 'Pre-exam points', render: (row: Record<string, unknown>) => pick(row, ['predispitniPoeni']) },
+  { header: 'Exam points', render: (row: Record<string, unknown>) => pick(row, ['ispitniPoeni']) },
+  { header: 'Total', render: (row: Record<string, unknown>) => pick(row, ['ukupnoPoena']) },
   { header: 'Grade', render: (row: Record<string, unknown>) => pick(row, ['ocena']) },
   { header: 'Method', render: (row: Record<string, unknown>) => pick(row, ['nacin']) },
   { header: 'Date', render: (row: Record<string, unknown>) => pick(row, ['datum']) }
@@ -46,6 +49,9 @@ const notPassedColumns = [
   { header: 'Code', render: (row: Record<string, unknown>) => pick(row, ['sifra']) },
   { header: 'Subject', render: (row: Record<string, unknown>) => pick(row, ['naziv']) },
   { header: 'ECTS', render: (row: Record<string, unknown>) => pick(row, ['espb']) },
+  { header: 'Pre-exam points', render: (row: Record<string, unknown>) => pick(row, ['predispitniPoeni']) },
+  { header: 'Exam points', render: (row: Record<string, unknown>) => pick(row, ['ispitniPoeni']) },
+  { header: 'Total', render: (row: Record<string, unknown>) => pick(row, ['ukupnoPoena']) },
   { header: 'Description', render: (row: Record<string, unknown>) => pick(row, ['opis']) }
 ];
 

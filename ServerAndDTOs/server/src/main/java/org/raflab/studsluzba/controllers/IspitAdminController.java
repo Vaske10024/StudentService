@@ -17,12 +17,14 @@ public class IspitAdminController {
 
     @PostMapping("/create")
     public Long create(@RequestBody @Validated IspitCreateRequest req) {
-        return service.create(req.getRokId(), req.getDrziPredmetId(), req.getDatum(), req.getVreme());
+        return service.create(req.getRokId(), req.getDrziPredmetId(), req.getDatum(), req.getVreme(),
+                req.getRegistrationStart(), req.getRegistrationEnd(), req.getCancellationEnd());
     }
 
     @PatchMapping("/{id}/vreme")
     public void updateTime(@PathVariable Long id, @RequestBody IspitUpdateTimeRequest req) {
-        service.updateTime(id, req.getDatum(), req.getVreme());
+        service.updateTime(id, req.getDatum(), req.getVreme(),
+                req.getRegistrationStart(), req.getRegistrationEnd(), req.getCancellationEnd());
     }
 
     @PatchMapping("/{id}/zakljucaj")

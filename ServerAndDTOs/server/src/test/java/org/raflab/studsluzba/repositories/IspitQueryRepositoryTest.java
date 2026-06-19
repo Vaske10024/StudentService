@@ -1,6 +1,7 @@
 package org.raflab.studsluzba.repositories;
 
 import org.junit.jupiter.api.Test;
+import org.hibernate.Hibernate;
 import org.raflab.studsluzba.model.StudentIndeks;
 import org.raflab.studsluzba.model.StudentPodaci;
 import org.raflab.studsluzba.model.ispiti.DrziPredmet;
@@ -49,6 +50,30 @@ class IspitQueryRepositoryTest {
         em.flush();
 
         assertThat(repo.prosecnaOcenaNaIspitu(examOne.getId())).isEqualTo(8.0d);
+    }
+
+    @Test
+    void prijavljeniZaIspitFetchesStudentPersonalData() {
+        Predmet p = predmet("PRG", "Programiranje");
+        em.persist(p);
+        DrziPredmet dp = new DrziPredmet();
+        dp.setPredmet(p);
+        em.persist(dp);
+
+        Ispit exam = ispit(dp, p);
+        em.persist(exam);
+
+        StudentIndeks student = student(1);
+        em.persist(student.getStudent());
+        em.persist(student);
+        em.persist(prijava(exam, student, 0));
+        em.flush();
+        em.clear();
+
+        StudentIndeks result = repo.prijavljeniZaIspit(exam.getId()).get(0);
+
+        assertThat(Hibernate.isInitialized(result.getStudent())).isTrue();
+        assertThat(result.getStudent().getIme()).isEqualTo("Student1");
     }
 
     private Predmet predmet(String sifra, String naziv) {

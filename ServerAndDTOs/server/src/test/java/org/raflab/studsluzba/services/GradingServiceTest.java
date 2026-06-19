@@ -29,7 +29,7 @@ class GradingServiceTest {
     private GradingService service() {
         GradingService service = new GradingService(mock(AuditLogRepository.class), mock(CurrentUser.class));
         ReflectionTestUtils.setField(service, "examMaxPoints", 70);
-        ReflectionTestUtils.setField(service, "predispitMaxTotalPoints", 30);
+        ReflectionTestUtils.setField(service, "predispitMaxTotalPoints", 100);
         return service;
     }
 }

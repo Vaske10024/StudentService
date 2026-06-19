@@ -2,7 +2,9 @@ package org.raflab.studsluzba.services;
 
 import lombok.RequiredArgsConstructor;
 import org.raflab.studsluzba.model.dtos.StudentRequestCreateDTO;
+import org.raflab.studsluzba.model.dtos.StudentRequestDTO;
 import org.raflab.studsluzba.model.dtos.StudentStatusChangeRequest;
+import org.raflab.studsluzba.model.StudentIndeks;
 import org.raflab.studsluzba.model.documents.*;
 import org.raflab.studsluzba.repositories.StudentIndeksRepository;
 import org.raflab.studsluzba.repositories.documents.*;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +32,7 @@ public class DocumentRequestService {
     private final PermissionService permissions;
     private final NotificationService notificationService;
 
-    public StudentRequest create(StudentRequestCreateDTO dto) {
+    public StudentRequestDTO create(StudentRequestCreateDTO dto) {
         currentUser.requireAdminOrStudentOwnsIndeks(dto.getIndeksId());
         StudentRequest request = new StudentRequest();
         request.setStudentIndeks(indeksRepo.findById(dto.getIndeksId()).orElseThrow(() -> ApiException.notFound("Indeks ne postoji.")));
@@ -37,10 +40,10 @@ public class DocumentRequestService {
         catch (RuntimeException e) { throw ApiException.badRequest("Nepoznat tip zahteva."); }
         request.setReason(dto.getReason()); request.setRequestedFrom(dto.getRequestedFrom()); request.setRequestedTo(dto.getRequestedTo());
         request.setSubmittedByUserId(currentUser.userId());
-        return requestRepo.save(request);
+        return toDto(requestRepo.save(request));
     }
 
-    public StudentRequest decide(Long id, boolean approved, String note) {
+    public StudentRequestDTO decide(Long id, boolean approved, String note) {
         permissions.require(Permission.DOCUMENT_DECIDE);
         StudentRequest request = require(id);
         if (request.getStatus() != StudentRequest.Status.SUBMITTED && request.getStatus() != StudentRequest.Status.IN_REVIEW) {
@@ -54,7 +57,7 @@ public class DocumentRequestService {
         history(saved, old, saved.getStatus(), note);
         notificationService.notifyStudent(saved.getStudentIndeks().getId(), "REQUEST_DECISION", "Zahtev je obradjen",
                 "Zahtev " + saved.getType() + " ima status " + saved.getStatus() + ".");
-        return saved;
+        return toDto(saved);
     }
 
     public StudentDocument upload(Long requestId, DocumentType type, String name, String contentType, byte[] bytes) {
@@ -75,15 +78,19 @@ public class DocumentRequestService {
     }
 
     @Transactional(readOnly = true)
-    public List<StudentRequest> list(Long indeksId) {
+    public List<StudentRequestDTO> list(Long indeksId) {
         currentUser.requireAdminOrStudentOwnsIndeks(indeksId);
-        return requestRepo.findByStudentIndeksIdOrderByCreatedAtDesc(indeksId);
+        return requestRepo.findByStudentIndeksIdOrderByCreatedAtDesc(indeksId).stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<StudentRequest> listAll() {
+    public List<StudentRequestDTO> listAll() {
         permissions.require(Permission.DOCUMENT_DECIDE);
-        return requestRepo.findAll();
+        return requestRepo.findAll().stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -112,5 +119,29 @@ public class DocumentRequestService {
         StudentRequestStatusHistory history = new StudentRequestStatusHistory();
         history.setStudentRequest(request); history.setOldStatus(oldStatus.name()); history.setNewStatus(newStatus.name());
         history.setNote(note); history.setActorUserId(currentUser.userId()); historyRepo.save(history);
+    }
+
+    private StudentRequestDTO toDto(StudentRequest request) {
+        StudentRequestDTO dto = new StudentRequestDTO();
+        dto.setId(request.getId());
+        StudentIndeks indeks = request.getStudentIndeks();
+        if (indeks != null) {
+            dto.setIndeksId(indeks.getId());
+            dto.setIndexLabel(indeks.getStudProgramOznaka() + " " + indeks.getBroj() + "/" + indeks.getGodina());
+            if (indeks.getStudent() != null) {
+                dto.setStudentName(indeks.getStudent().getIme() + " " + indeks.getStudent().getPrezime());
+            }
+        }
+        dto.setType(request.getType() == null ? null : request.getType().name());
+        dto.setStatus(request.getStatus() == null ? null : request.getStatus().name());
+        dto.setReason(request.getReason());
+        dto.setRequestedFrom(request.getRequestedFrom());
+        dto.setRequestedTo(request.getRequestedTo());
+        dto.setSubmittedByUserId(request.getSubmittedByUserId());
+        dto.setDecidedByUserId(request.getDecidedByUserId());
+        dto.setDecisionNote(request.getDecisionNote());
+        dto.setCreatedAt(request.getCreatedAt());
+        dto.setDecidedAt(request.getDecidedAt());
+        return dto;
     }
 }

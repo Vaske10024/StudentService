@@ -13,7 +13,10 @@ import java.util.Optional;
 @Repository
 public interface IspitQueryRepository extends CrudRepository<PrijavaIspita, Long> {
 
-    @Query("select pi.student from PrijavaIspita pi where pi.ispit.id = :ispitId and pi.ponisteno = false")
+    @Query("select si from PrijavaIspita pi " +
+            "join pi.student si " +
+            "left join fetch si.student " +
+            "where pi.ispit.id = :ispitId and pi.ponisteno = false")
     List<StudentIndeks> prijavljeniZaIspit(@Param("ispitId") Long ispitId);
 
     @Query("select avg(pi.ocena) from PrijavaIspita pi " +
@@ -97,6 +100,13 @@ public interface IspitQueryRepository extends CrudRepository<PrijavaIspita, Long
             + "and pi.ponisteno = false and pi.ocena between 6 and 10 "
             + "and (pi.daLiJeIzasao = true or pi.priznatSDrugogFakulteta = true)")
     List<PrijavaIspita> passedAttemptsForStudent(@Param("studentIndeksId") Long studentIndeksId);
+
+    @Query("select pi from PrijavaIspita pi where pi.student.id = :studentIndeksId "
+            + "and pi.ponisteno = false "
+            + "and (pi.predmet.id = :predmetId or pi.ispit.predmet.id = :predmetId or pi.ispit.drziPredmet.predmet.id = :predmetId) "
+            + "order by pi.datumPrijave desc, pi.id desc")
+    List<PrijavaIspita> attemptsForStudentSubject(@Param("studentIndeksId") Long studentIndeksId,
+                                                  @Param("predmetId") Long predmetId);
 
     List<PrijavaIspita> findByIspitId(Long ispitId);
 }

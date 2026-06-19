@@ -22,6 +22,7 @@ const examColumns = [
   { header: 'Exam period', render: (row: Record<string, unknown>) => `${pick(row, ['rokDatumPocetka'])} - ${pick(row, ['rokDatumZavrsetka'])}` },
   { header: 'Date', render: (row: Record<string, unknown>) => pick(row, ['datumOdrzavanja', 'datum']) },
   { header: 'Time', render: (row: Record<string, unknown>) => pick(row, ['vremePocetka', 'vreme']) },
+  { header: 'Registration until', render: (row: Record<string, unknown>) => pick(row, ['registrationEnd']) },
   { header: 'Locked', render: (row: Record<string, unknown>) => pick(row, ['zakljucen', 'locked']) },
   { header: 'Registered students', render: (row: Record<string, unknown>) => <Link to={`/professor/exams/${String(row.id ?? row.ispitId)}/registered`}>Open</Link> },
   { header: 'Results', render: (row: Record<string, unknown>) => <Link to={`/professor/exams/${String(row.id ?? row.ispitId)}/results`}>Open</Link> }
@@ -53,6 +54,10 @@ const resultColumns = [
   { header: 'Attended', render: (row: Record<string, unknown>) => pick(row, ['izasao']) },
   { header: 'Cancelled', render: (row: Record<string, unknown>) => pick(row, ['ponisteno']) }
 ];
+
+function toDateTimeLocal(value: unknown): string {
+  return String(value ?? '').slice(0, 16);
+}
 
 export function ProfessorDashboardPage() {
   const { data, loading, error } = useApi(meApi.professorDashboard, []);
@@ -95,7 +100,7 @@ export function ProfessorSubjectStudentsPage() {
 export function ProfessorExamsPage() {
   const exams = useApi(meApi.professorExams, []);
   const [editing, setEditing] = useState<Record<string, unknown> | null>(null);
-  const [form, setForm] = useState({ datum: '', vreme: '' });
+  const [form, setForm] = useState({ datum: '', vreme: '', registrationStart: '', registrationEnd: '', cancellationEnd: '' });
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -103,7 +108,10 @@ export function ProfessorExamsPage() {
     setEditing(row);
     setForm({
       datum: String(row.datumOdrzavanja ?? ''),
-      vreme: String(row.vremePocetka ?? '').slice(0, 5)
+      vreme: String(row.vremePocetka ?? '').slice(0, 5),
+      registrationStart: toDateTimeLocal(row.registrationStart),
+      registrationEnd: toDateTimeLocal(row.registrationEnd),
+      cancellationEnd: toDateTimeLocal(row.cancellationEnd)
     });
     setMessage(null);
     setActionError(null);
@@ -136,6 +144,9 @@ export function ProfessorExamsPage() {
       <form className="formGrid" onSubmit={save}>
         <label>Exam date *<input required type="date" min={String(editing.rokDatumPocetka ?? '')} max={String(editing.rokDatumZavrsetka ?? '')} value={form.datum} onChange={(e) => setForm({ ...form, datum: e.target.value })} /></label>
         <label>Start time *<input required type="time" value={form.vreme} onChange={(e) => setForm({ ...form, vreme: e.target.value })} /></label>
+        <label>Registration start *<input required type="datetime-local" value={form.registrationStart} onChange={(e) => setForm({ ...form, registrationStart: e.target.value })} /></label>
+        <label>Registration end *<input required type="datetime-local" value={form.registrationEnd} onChange={(e) => setForm({ ...form, registrationEnd: e.target.value })} /></label>
+        <label>Cancellation end *<input required type="datetime-local" value={form.cancellationEnd} onChange={(e) => setForm({ ...form, cancellationEnd: e.target.value })} /></label>
         <button type="submit">Save changes</button>
       </form>
     </Modal>}
@@ -185,7 +196,11 @@ export function ProfessorExamResultsPage() {
   const columns = [
     ...resultColumns.slice(0, 2),
     { header: 'Predispitni', render: (row: Record<string, unknown>) => pick(row, ['predispitniPoeni']) },
-    { header: 'Rezultat', render: (row: Record<string, unknown>) => <ResultEditor row={row} disabled={saving !== null} onSave={async (payload) => {
+    { header: 'Ispitni', render: (row: Record<string, unknown>) => pick(row, ['ispitniPoeni']) },
+    { header: 'Ukupno', render: (row: Record<string, unknown>) => pick(row, ['ukupnoPoena', 'ukupniPoeni']) },
+    { header: 'Ocena', render: (row: Record<string, unknown>) => pick(row, ['ocena']) },
+    { header: 'Izlazak', render: (row: Record<string, unknown>) => pick(row, ['izasao']) },
+    { header: 'Unos', render: (row: Record<string, unknown>) => <ResultEditor row={row} disabled={saving !== null} onSave={async (payload) => {
       setSaving(Number(row.id)); setActionError(null); setMessage(null);
       try { await professorApi.updateResult({ prijavaId: Number(row.id), ...payload }); setMessage('Rezultat je sačuvan, a ocena obračunata.'); await result.reload(); }
       catch (error) { setActionError(apiErrorMessage(error, 'Čuvanje rezultata nije uspelo.')); } finally { setSaving(null); }
@@ -238,8 +253,8 @@ export function ProfessorPredispitPage() {
       {error && <ErrorMessage message={error} />}{message && <p className="success">{message}</p>}
       <label>Predmet i školska godina<select value={subjectId} onChange={(e) => { setSubjectId(e.target.value); setDefinitionId(''); setError(null); setMessage(null); }}><option value="">Izaberite predmet</option>{asRows(subjects.data).map((item) => <option key={String(item.id)} value={String(item.id)}>{`${pick(item, ['predmetNaziv'])} · ${pick(item, ['skolskaGodinaNaziv'])} · ${pick(item, ['uloga'])}`}</option>)}</select></label>
     </section>
-    {selected && <section className="card"><h2>1. Dodaj predispitnu obavezu</h2><p className="muted">Ukupan maksimum svih predispitnih obaveza za predmet može biti najviše 30 poena.</p>
-      <form className="formGrid" onSubmit={createDefinition}><label>Naziv obaveze<input required placeholder="Kolokvijum, projekat, aktivnost..." value={definition.vrsta} onChange={(e) => setDefinition({ ...definition, vrsta: e.target.value })} /></label><label>Maksimalni poeni<input required type="number" min="1" max="30" value={definition.maxPoeni} onChange={(e) => setDefinition({ ...definition, maxPoeni: e.target.value })} /></label><button type="submit">Dodaj obavezu</button></form>
+    {selected && <section className="card"><h2>1. Dodaj predispitnu obavezu</h2><p className="muted">Ukupan maksimum predispitnih obaveza podešava se na backendu.</p>
+      <form className="formGrid" onSubmit={createDefinition}><label>Naziv obaveze<input required placeholder="Kolokvijum, projekat, aktivnost..." value={definition.vrsta} onChange={(e) => setDefinition({ ...definition, vrsta: e.target.value })} /></label><label>Maksimalni poeni<input required type="number" min="1" max="100" value={definition.maxPoeni} onChange={(e) => setDefinition({ ...definition, maxPoeni: e.target.value })} /></label><button type="submit">Dodaj obavezu</button></form>
     </section>}
     {selected && <section className="card"><h2>2. Unesi poene studentima</h2>
       {gradebooks.loading ? <Loading /> : gradebooks.error ? <ErrorMessage message={gradebooks.error} /> : !books.length ? <p className="muted">Još nema predispitnih obaveza. Dodajte prvu obavezu iznad.</p> : <>

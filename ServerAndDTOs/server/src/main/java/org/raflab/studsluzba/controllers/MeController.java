@@ -142,6 +142,13 @@ public class MeController {
             dto.setIspitniRokId(i.getIspitniRok().getId());
             dto.setRokDatumPocetka(i.getIspitniRok().getDatumPocetka());
             dto.setRokDatumZavrsetka(i.getIspitniRok().getDatumZavrsetka());
+            dto.setRegistrationStart(i.getRegistrationStart() != null ? i.getRegistrationStart() : i.getIspitniRok().getRegistrationStart());
+            dto.setRegistrationEnd(i.getRegistrationEnd() != null ? i.getRegistrationEnd() : i.getIspitniRok().getRegistrationEnd());
+            dto.setCancellationEnd(i.getCancellationEnd() != null ? i.getCancellationEnd() : i.getIspitniRok().getCancellationEnd());
+        } else {
+            dto.setRegistrationStart(i.getRegistrationStart());
+            dto.setRegistrationEnd(i.getRegistrationEnd());
+            dto.setCancellationEnd(i.getCancellationEnd());
         }
         if (i.getDrziPredmet() != null) {
             dto.setDrziPredmetId(i.getDrziPredmet().getId());

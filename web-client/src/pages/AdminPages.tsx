@@ -17,10 +17,10 @@ const entityColumns = [
 ];
 
 const studentColumns = [
-  { header: 'ID', render: (row: Record<string, unknown>) => pick(row, ['id', 'studentId']) },
+  { header: 'ID', render: (row: Record<string, unknown>) => pick(row, ['idStudentPodaci', 'id', 'studentId']) },
   { header: 'Name', render: (row: Record<string, unknown>) => `${pick(row, ['ime', 'firstName'])} ${pick(row, ['prezime', 'lastName'])}` },
   { header: 'Email', render: (row: Record<string, unknown>) => pick(row, ['emailFakultetski', 'emailPrivatni', 'email']) },
-  { header: 'Open', render: (row: Record<string, unknown>) => <Link to={`/admin/students/${String(row.id ?? row.studentId)}`}>Open</Link> }
+  { header: 'Open', render: (row: Record<string, unknown>) => <Link to={`/admin/students/${String(row.idStudentPodaci ?? row.id ?? row.studentId)}`}>Open</Link> }
 ];
 
 const examColumns = [
@@ -29,6 +29,7 @@ const examColumns = [
   { header: 'Professor', render: (row: Record<string, unknown>) => pick(row, ['nastavnikImePrezime']) },
   { header: 'Date', render: (row: Record<string, unknown>) => pick(row, ['datumOdrzavanja']) },
   { header: 'Time', render: (row: Record<string, unknown>) => pick(row, ['vremePocetka']) },
+  { header: 'Registration until', render: (row: Record<string, unknown>) => pick(row, ['registrationEnd']) },
   { header: 'Locked', render: (row: Record<string, unknown>) => pick(row, ['zakljucen']) }
 ];
 
@@ -36,6 +37,10 @@ function pageRows(data: unknown): Record<string, unknown>[] {
   if (Array.isArray(data)) return asRows(data);
   if (data && typeof data === 'object' && Array.isArray((data as { content?: unknown[] }).content)) return asRows((data as { content: unknown[] }).content);
   return [];
+}
+
+function toDateTimeLocal(value: unknown): string {
+  return String(value ?? '').slice(0, 16);
 }
 
 export function AdminDashboardPage() {
@@ -350,14 +355,25 @@ export function AdminExamsPage() {
   const periods = useApi(adminApi.examPeriods, []);
   const assignments = useApi(adminApi.assignments, []);
   const [periodId, setPeriodId] = useState('');
-  const [form, setForm] = useState({ drziPredmetId: '', datum: '', vreme: '09:00' });
+  const [form, setForm] = useState({ drziPredmetId: '', datum: '', vreme: '09:00', registrationStart: '', registrationEnd: '', cancellationEnd: '' });
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const selectedPeriod = asRows(periods.data).find((period) => String(period.id) === periodId);
 
   useEffect(() => {
     const firstPeriod = asRows(periods.data)[0];
     if (!periodId && firstPeriod?.id !== undefined) setPeriodId(String(firstPeriod.id));
   }, [periodId, periods.data]);
+
+  useEffect(() => {
+    if (!selectedPeriod) return;
+    setForm((current) => ({
+      ...current,
+      registrationStart: current.registrationStart || toDateTimeLocal(selectedPeriod.registrationStart),
+      registrationEnd: current.registrationEnd || toDateTimeLocal(selectedPeriod.registrationEnd),
+      cancellationEnd: current.cancellationEnd || toDateTimeLocal(selectedPeriod.cancellationEnd)
+    }));
+  }, [selectedPeriod]);
 
   const exams = useApi(
     () => periodId ? adminApi.examsForPeriod(periodId) : Promise.resolve([]),
@@ -367,7 +383,7 @@ export function AdminExamsPage() {
   async function createExam(event: FormEvent) {
     event.preventDefault(); setActionError(null); setMessage(null);
     try {
-      await adminApi.createExam({ rokId: Number(periodId), drziPredmetId: Number(form.drziPredmetId), datum: form.datum, vreme: form.vreme });
+      await adminApi.createExam({ rokId: Number(periodId), drziPredmetId: Number(form.drziPredmetId), datum: form.datum, vreme: form.vreme, registrationStart: form.registrationStart, registrationEnd: form.registrationEnd, cancellationEnd: form.cancellationEnd });
       setMessage('Ispit je kreiran. Studentima će biti vidljiv prema pravilima roka.');
       await exams.reload();
     } catch (error) { setActionError(apiErrorMessage(error, 'Kreiranje ispita nije uspelo.')); }
@@ -383,7 +399,13 @@ export function AdminExamsPage() {
     if (!datum) return;
     const vreme = window.prompt('Novo vreme ispita (HH:mm)', String(row.vremePocetka ?? '').slice(0, 5));
     if (!vreme) return;
-    try { await adminApi.updateExamTime(String(row.id), { datum, vreme }); setMessage('Termin ispita je izmenjen.'); await exams.reload(); }
+    const registrationStart = window.prompt('Pocetak prijave (YYYY-MM-DDTHH:mm)', toDateTimeLocal(row.registrationStart));
+    if (!registrationStart) return;
+    const registrationEnd = window.prompt('Kraj prijave (YYYY-MM-DDTHH:mm)', toDateTimeLocal(row.registrationEnd));
+    if (!registrationEnd) return;
+    const cancellationEnd = window.prompt('Kraj odjave (YYYY-MM-DDTHH:mm)', toDateTimeLocal(row.cancellationEnd));
+    if (!cancellationEnd) return;
+    try { await adminApi.updateExamTime(String(row.id), { datum, vreme, registrationStart, registrationEnd, cancellationEnd }); setMessage('Termin ispita je izmenjen.'); await exams.reload(); }
     catch (error) { setActionError(apiErrorMessage(error, 'Izmena termina nije uspela.')); }
   }
 
@@ -399,7 +421,7 @@ export function AdminExamsPage() {
         <>
           <label>
             Exam period
-            <select value={periodId} onChange={(event) => setPeriodId(event.target.value)}>
+            <select value={periodId} onChange={(event) => { setPeriodId(event.target.value); setForm((current) => ({ ...current, registrationStart: '', registrationEnd: '', cancellationEnd: '' })); }}>
               {!asRows(periods.data).length && <option value="">No exam periods available</option>}
               {asRows(periods.data).map((period) => (
                 <option key={String(period.id)} value={String(period.id)}>
@@ -414,6 +436,9 @@ export function AdminExamsPage() {
             <label>Teaching assignment *<select required value={form.drziPredmetId} onChange={(e) => setForm({ ...form, drziPredmetId: e.target.value })}><option value="">Select</option>{asRows(assignments.data).map((item) => <option key={String(item.id)} value={String(item.id)}>{`${pick(item, ['predmetNaziv'])} - ${pick(item, ['nastavnikImePrezime'])}`}</option>)}</select></label>
             <label>Exam date *<input required type="date" value={form.datum} onChange={(e) => setForm({ ...form, datum: e.target.value })} /></label>
             <label>Start time *<input required type="time" value={form.vreme} onChange={(e) => setForm({ ...form, vreme: e.target.value })} /></label>
+            <label>Registration start *<input required type="datetime-local" value={form.registrationStart} onChange={(e) => setForm({ ...form, registrationStart: e.target.value })} /></label>
+            <label>Registration end *<input required type="datetime-local" value={form.registrationEnd} onChange={(e) => setForm({ ...form, registrationEnd: e.target.value })} /></label>
+            <label>Cancellation end *<input required type="datetime-local" value={form.cancellationEnd} onChange={(e) => setForm({ ...form, cancellationEnd: e.target.value })} /></label>
             <button disabled={!periodId}>Create exam</button>
           </form>
           {!exams.loading && !exams.error && <DataTable rows={asRows(exams.data)} columns={columns} empty="No exams in the selected period." />}

@@ -36,7 +36,8 @@ public class IspitController {
     @PatchMapping("/{ispitId}/vreme")
     public void updateTime(@PathVariable Long ispitId, @RequestBody IspitUpdateTimeRequest req) {
         currentUser.requireAdminOrProfessorOwnsIspit(ispitId);
-        adminService.updateTime(ispitId, req.getDatum(), req.getVreme());
+        adminService.updateTime(ispitId, req.getDatum(), req.getVreme(),
+                req.getRegistrationStart(), req.getRegistrationEnd(), req.getCancellationEnd());
     }
 
     @GetMapping("/{ispitId}/prosek")

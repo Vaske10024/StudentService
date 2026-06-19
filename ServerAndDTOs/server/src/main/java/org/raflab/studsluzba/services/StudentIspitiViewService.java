@@ -2,6 +2,7 @@ package org.raflab.studsluzba.services;
 //asdasd
 import lombok.RequiredArgsConstructor;
 import org.raflab.studsluzba.model.ispiti.Predmet;
+import org.raflab.studsluzba.model.ispiti.PrijavaIspita;
 import org.raflab.studsluzba.model.dtos.PolozenPredmetDTO;
 import org.raflab.studsluzba.model.dtos.PredmetDTO;
 import org.raflab.studsluzba.model.ispiti.SlusaPredmet;
@@ -9,6 +10,7 @@ import org.raflab.studsluzba.repositories.IspitQueryRepository;
 import org.raflab.studsluzba.repositories.ProgramPredmetRepository;
 import org.raflab.studsluzba.repositories.SlusaPredmetRepository;
 import org.raflab.studsluzba.repositories.StudentIndeksRepository;
+import org.raflab.studsluzba.repositories.OstvarenaPredObavRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -27,6 +29,8 @@ StudentIspitiViewService {
     private final ProgramPredmetRepository programPredmetRepo;
     private final StudentIndeksRepository indeksRepo;
     private final SlusaPredmetRepository slusaRepo;
+    private final OstvarenaPredObavRepository ostvarenaPredObavRepo;
+    private final PrijavaScoreService scoreService;
 
 
     @Transactional
@@ -45,7 +49,7 @@ StudentIspitiViewService {
 
                             if (p == null) return null;
 
-                            return new PolozenPredmetDTO(
+                            PolozenPredmetDTO dto = new PolozenPredmetDTO(
                                     p.getId(),
                                     p.getSifra(),
                                     p.getNaziv(),
@@ -55,6 +59,8 @@ StudentIspitiViewService {
                                     pi.getDatumPrijave()
 
                             );
+                            applyPoints(dto, pi);
+                            return dto;
                         })
                         .filter(Objects::nonNull)
                         .collect(Collectors.toList());
@@ -67,7 +73,7 @@ StudentIspitiViewService {
                             Predmet p = pi.getPredmet();
                             if (p == null) return null;
 
-                            return new PolozenPredmetDTO(
+                            PolozenPredmetDTO dto = new PolozenPredmetDTO(
                                     p.getId(),
                                     p.getSifra(),
                                     p.getNaziv(),
@@ -76,6 +82,10 @@ StudentIspitiViewService {
                                     "PRIZNAT",
                                     pi.getDatumPrijave()
                             );
+                            dto.setPredispitniPoeni(0);
+                            dto.setIspitniPoeni(0);
+                            dto.setUkupnoPoena(0);
+                            return dto;
                         })
                         .filter(Objects::nonNull)
                         .collect(Collectors.toList());
@@ -159,14 +169,7 @@ StudentIspitiViewService {
                 .filter(Objects::nonNull)
                 .filter(p -> !polozeni.contains(p.getId()))
                 .distinct()
-                .map(p -> new PredmetDTO(
-                        p.getId(),
-                        p.getSifra(),
-                        p.getNaziv(),
-                        p.getOpis(),
-                        p.getEspb(),
-                        p.getStudProgram() != null ? p.getStudProgram().getOznaka() : null
-                ))
+                .map(p -> toNotPassedDto(p, indeksId, schoolYearIdForSubject(slusaList, p.getId())))
                 .collect(Collectors.toList());
 
 
@@ -178,5 +181,46 @@ StudentIspitiViewService {
                 nepolozeni.size());
     }
 
+    private void applyPoints(PolozenPredmetDTO dto, PrijavaIspita pi) {
+        int ukupno = scoreService.ukupniPoeniZaPrijavu(pi);
+        int ispitni = pi.getBrojOsvojenihPoena() == null ? 0 : pi.getBrojOsvojenihPoena();
+        dto.setIspitniPoeni(ispitni);
+        dto.setPredispitniPoeni(Math.max(0, ukupno - ispitni));
+        dto.setUkupnoPoena(ukupno);
+    }
+
+    private PredmetDTO toNotPassedDto(Predmet p, Long indeksId, Long skolskaGodinaId) {
+        PredmetDTO dto = new PredmetDTO(
+                p.getId(),
+                p.getSifra(),
+                p.getNaziv(),
+                p.getOpis(),
+                p.getEspb(),
+                p.getStudProgram() != null ? p.getStudProgram().getOznaka() : null
+        );
+        int predispitni = 0;
+        if (skolskaGodinaId != null) {
+            Integer sum = ostvarenaPredObavRepo.ostvareniPredispitniPoeni(indeksId, p.getId(), skolskaGodinaId);
+            predispitni = sum == null ? 0 : sum;
+        }
+        dto.setPredispitniPoeni(predispitni);
+        PrijavaIspita latestAttempt = iqRepo.attemptsForStudentSubject(indeksId, p.getId()).stream().findFirst().orElse(null);
+        int ispitni = latestAttempt == null || latestAttempt.getBrojOsvojenihPoena() == null ? 0 : latestAttempt.getBrojOsvojenihPoena();
+        dto.setIspitniPoeni(ispitni);
+        dto.setUkupnoPoena(latestAttempt == null ? predispitni : scoreService.ukupniPoeniZaPrijavu(latestAttempt));
+        return dto;
+    }
+
+    private Long schoolYearIdForSubject(List<SlusaPredmet> slusaList, Long predmetId) {
+        return slusaList.stream()
+                .filter(item -> item != null && item.getSkolskaGodina() != null
+                        && item.getRealizacijaPredmeta() != null
+                        && item.getRealizacijaPredmeta().getProgramPredmet() != null
+                        && item.getRealizacijaPredmeta().getProgramPredmet().getPredmet() != null
+                        && Objects.equals(item.getRealizacijaPredmeta().getProgramPredmet().getPredmet().getId(), predmetId))
+                .map(item -> item.getSkolskaGodina().getId())
+                .findFirst()
+                .orElse(null);
+    }
 
 }

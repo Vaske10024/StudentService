@@ -40,9 +40,15 @@ public class AvailableExamService {
             }
         }
         if (exam.getIspitniRok() != null) {
-            dto.setPeriodId(exam.getIspitniRok().getId()); dto.setRegistrationStart(exam.getIspitniRok().getRegistrationStart());
-            dto.setRegistrationEnd(exam.getIspitniRok().getRegistrationEnd()); dto.setCancellationEnd(exam.getIspitniRok().getCancellationEnd());
+            dto.setPeriodId(exam.getIspitniRok().getId());
+            dto.setRegistrationStart(exam.getRegistrationStart() != null ? exam.getRegistrationStart() : exam.getIspitniRok().getRegistrationStart());
+            dto.setRegistrationEnd(exam.getRegistrationEnd() != null ? exam.getRegistrationEnd() : exam.getIspitniRok().getRegistrationEnd());
+            dto.setCancellationEnd(exam.getCancellationEnd() != null ? exam.getCancellationEnd() : exam.getIspitniRok().getCancellationEnd());
             dto.setPeriodActive(exam.getIspitniRok().isActive());
+        } else {
+            dto.setRegistrationStart(exam.getRegistrationStart());
+            dto.setRegistrationEnd(exam.getRegistrationEnd());
+            dto.setCancellationEnd(exam.getCancellationEnd());
         }
         PrijavaIspita registration = prijavaRepo.findAktivnaPrijava(exam.getId(), indeksId).orElse(null);
         if (registration != null) {

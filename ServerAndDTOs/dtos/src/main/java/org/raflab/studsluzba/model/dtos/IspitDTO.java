@@ -3,6 +3,7 @@ package org.raflab.studsluzba.model.dtos;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Data
@@ -20,6 +21,9 @@ public class IspitDTO {
     private Long drziPredmetId;
     private String predmetNaziv;
     private String nastavnikImePrezime;
+    private LocalDateTime registrationStart;
+    private LocalDateTime registrationEnd;
+    private LocalDateTime cancellationEnd;
 
     @Override
     public String toString() {

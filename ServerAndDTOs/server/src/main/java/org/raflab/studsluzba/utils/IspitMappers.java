@@ -31,8 +31,14 @@ public class IspitMappers {
     public IspitRezultatDTO toIspitRezultatDTO(PrijavaIspita pi) {
         if (pi == null) return null;
         IspitRezultatDTO dto = new IspitRezultatDTO();
+        dto.setId(pi.getId());
+        dto.setIspitId(pi.getIspit() == null ? null : pi.getIspit().getId());
         dto.setStudent(toStudentLiteDTO(pi.getStudent()));
-        dto.setUkupniPoeni(scoreService.ukupniPoeniZaPrijavu(pi));
+        int ukupno = scoreService.ukupniPoeniZaPrijavu(pi);
+        int ispitni = pi.getBrojOsvojenihPoena() == null ? 0 : pi.getBrojOsvojenihPoena();
+        dto.setIspitniPoeni(ispitni);
+        dto.setPredispitniPoeni(Math.max(0, ukupno - ispitni));
+        dto.setUkupniPoeni(ukupno);
         dto.setOcena(pi.getOcena());
         dto.setIzasao(pi.isDaLiJeIzasao());
         dto.setPonisteno(Boolean.TRUE.equals(pi.getPonisteno()));
