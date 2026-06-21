@@ -2,11 +2,18 @@ import { FormEvent, useState } from 'react';
 import { changePassword } from '../api/auth';
 import { apiErrorMessage, apiRequest } from '../api/client';
 import { meApi } from '../api/me';
+import type { StudentDashboard } from '../api/types';
 import { DataTable } from '../components/DataTable';
 import { ErrorMessage, Loading } from '../components/Status';
 import { StudentOverview } from '../components/StudentOverview';
 import { useApi } from '../hooks/useApi';
 import { asRows, pick } from './dataHelpers';
+
+type ChartSlice = {
+  label: string;
+  value: number;
+  color: string;
+};
 
 const subjectColumns = [
   { header: 'Code', render: (row: Record<string, unknown>) => pick(row, ['code', 'sifra']) },
@@ -73,6 +80,136 @@ function money(value: unknown, currency: 'EUR' | 'RSD'): string {
   return new Intl.NumberFormat('sr-RS', { style: 'currency', currency }).format(number);
 }
 
+function numeric(value: unknown): number {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function sumByKeys(rows: Record<string, unknown>[], keys: string[]): number {
+  return rows.reduce((sum, row) => {
+    for (const key of keys) {
+      if (row[key] !== undefined && row[key] !== null && row[key] !== '') return sum + numeric(row[key]);
+    }
+    return sum;
+  }, 0);
+}
+
+function percent(value: number, total: number): string {
+  if (!total) return '0%';
+  return `${Math.round((value / total) * 100)}%`;
+}
+
+function DonutChart({ title, subtitle, slices, emptyLabel = 'No data' }: { title: string; subtitle: string; slices: ChartSlice[]; emptyLabel?: string }) {
+  const cleanSlices = slices.filter((slice) => slice.value > 0);
+  const total = cleanSlices.reduce((sum, slice) => sum + slice.value, 0);
+  const radius = 43;
+  const circumference = 2 * Math.PI * radius;
+  let offset = 0;
+
+  return (
+    <article className="chartCard">
+      <div className="chartHeader">
+        <span>{title}</span>
+        <strong>{subtitle}</strong>
+      </div>
+      <div className="donutWrap">
+        <svg className="donutChart" viewBox="0 0 120 120" role="img" aria-label={`${title}: ${subtitle}`}>
+          <circle className="donutTrack" cx="60" cy="60" r={radius} />
+          {total === 0 ? (
+            <circle className="donutEmpty" cx="60" cy="60" r={radius} />
+          ) : cleanSlices.map((slice) => {
+            const arc = (slice.value / total) * circumference;
+            const dashOffset = -offset;
+            offset += arc;
+            return (
+              <circle
+                key={slice.label}
+                className="donutSegment"
+                cx="60"
+                cy="60"
+                r={radius}
+                stroke={slice.color}
+                strokeDasharray={`${arc} ${circumference - arc}`}
+                strokeDashoffset={dashOffset}
+              />
+            );
+          })}
+          <text className="donutTotal" x="60" y="57" textAnchor="middle">{total}</text>
+          <text className="donutLabel" x="60" y="73" textAnchor="middle">{total ? 'total' : emptyLabel}</text>
+        </svg>
+      </div>
+      <div className="chartLegend">
+        {slices.map((slice) => (
+          <div className="legendItem" key={slice.label}>
+            <span className="legendSwatch" style={{ background: slice.color }} aria-hidden="true" />
+            <span>{slice.label}</span>
+            <strong>{slice.value} <small>{percent(slice.value, total)}</small></strong>
+          </div>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function StudentProfileCharts({ dashboard }: { dashboard: StudentDashboard }) {
+  const passed = asRows(dashboard.passedSubjects);
+  const notPassed = asRows(dashboard.failedOrNotPassedSubjects);
+  const current = asRows(dashboard.currentSubjects);
+  const earnedEcts = sumByKeys(passed, ['espb', 'ects']);
+  const remainingEcts = sumByKeys(notPassed, ['espb', 'ects']);
+  const activeEcts = sumByKeys(current, ['ects', 'espb']);
+  const gradeCounts = passed.reduce<Record<string, number>>((counts, row) => {
+    const grade = numeric(row.ocena ?? row.grade);
+    if (grade >= 6) counts[String(grade)] = (counts[String(grade)] ?? 0) + 1;
+    return counts;
+  }, {});
+  const gradeColors: Record<string, string> = {
+    '6': '#6b7d91',
+    '7': '#2f80c9',
+    '8': '#1c8c78',
+    '9': '#d19624',
+    '10': '#b34865'
+  };
+  const gradeSlices = Object.entries(gradeCounts)
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .map(([grade, value]) => ({ label: `Grade ${grade}`, value, color: gradeColors[grade] ?? '#7c6eb0' }));
+
+  return (
+    <section className="card">
+      <header className="sectionHeader">
+        <div>
+          <h2>Academic overview</h2>
+          <p className="muted">Quick visual snapshot of passed exams, ECTS progress and grades.</p>
+        </div>
+      </header>
+      <div className="chartGrid">
+        <DonutChart
+          title="Exam status"
+          subtitle={`${passed.length} passed / ${notPassed.length} pending`}
+          slices={[
+            { label: 'Passed', value: passed.length, color: '#1c8c78' },
+            { label: 'Not passed', value: notPassed.length, color: '#d19624' }
+          ]}
+        />
+        <DonutChart
+          title="ECTS balance"
+          subtitle={`${earnedEcts} earned ECTS`}
+          slices={[
+            { label: 'Earned', value: earnedEcts, color: '#2f80c9' },
+            { label: 'Remaining', value: remainingEcts, color: '#d45b5b' },
+            { label: 'Currently listening', value: activeEcts, color: '#7c6eb0' }
+          ]}
+        />
+        <DonutChart
+          title="Grade spread"
+          subtitle={gradeSlices.length ? `${gradeSlices.length} grade groups` : 'No passed grades yet'}
+          slices={gradeSlices.length ? gradeSlices : [{ label: 'No grades', value: 0, color: '#a7b4c4' }]}
+        />
+      </div>
+    </section>
+  );
+}
+
 export function StudentDashboardPage() {
   const { data, loading, error } = useApi(meApi.studentDashboard, []);
   if (loading) return <Loading />;
@@ -136,6 +273,7 @@ export function StudentProfilePage() {
   return (
     <section>
       <h1>Student profile</h1>
+      <StudentProfileCharts dashboard={data} />
       <StudentOverview dashboard={data} />
       <section className="card">
         <h2>Change password</h2>
