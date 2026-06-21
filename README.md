@@ -446,10 +446,12 @@ The JavaFX/FXML client was not ported directly. Its controllers were used as a f
 - Made index assignment transaction-safe using a pessimistic allocation lock and retry on unique conflicts.
 - Enforced one active school year at the service layer and added a DB-level generated-column unique backstop in the migration.
 - Replaced exposed JPA entities with DTO responses in the targeted controllers.
-- Added a global sanitized API error format.
+- Added a global sanitized API error format, including Spring Security 401/403 responses and rate-limit 429 responses.
+- Added explicit route guards for enrollment applications, document requests, finance, schedule, notifications, and student-lifecycle namespaces.
+- Sanitized finance ledger, student-document list/upload, notification, enrollment-application, security-admin, schedule, and academic-workflow responses so internal entity graphs, storage keys, and unnecessary personal/internal fields are not exposed.
 - Moved datasource credentials to environment variables.
 - Added Flyway migrations and test/dev/prod profiles.
-- Added tests for auth, ownership checks, exam registration validation, locked exams, grading, payments, index-number gap allocation, and the average-query bug.
+- Added tests for auth, ownership checks, JSON security errors, exam registration validation, locked exams, grading, payments, index-number gap allocation, and the average-query bug.
 
 ## API error format
 
@@ -473,6 +475,7 @@ HTTP status policy:
 - `403` forbidden
 - `404` missing resource
 - `409` duplicate/state conflict
+- `429` rate limit exceeded
 - `500` sanitized unexpected server error
 
 ## Business-rule assumptions still to confirm
@@ -609,6 +612,14 @@ Run the backend tests from `ServerAndDTOs/`:
 
 ```bash
 ./mvnw test
+```
+
+On Windows, set `JAVA_HOME` to a JDK 11 installation first if Maven reports that it is missing:
+
+```powershell
+$env:JAVA_HOME='C:\Users\gamek\.jdks\ms-11.0.30'
+$env:Path="$env:JAVA_HOME\bin;$env:Path"
+.\mvnw.cmd test
 ```
 
 Run the frontend typecheck/build from `web-client/`:

@@ -31,12 +31,13 @@ class MustChangePasswordFilterTest {
         TestingAuthenticationToken auth = new TestingAuthenticationToken(account.getUsername(), "ignored", "ROLE_STUDENT");
         auth.setAuthenticated(true);
         SecurityContextHolder.getContext().setAuthentication(auth);
-        MustChangePasswordFilter filter = new MustChangePasswordFilter(repo, new ObjectMapper());
+        MustChangePasswordFilter filter = new MustChangePasswordFilter(repo, new ApiErrorResponseWriter(new ObjectMapper()));
 
         MockHttpServletResponse blocked = new MockHttpServletResponse();
         FilterChain blockedChain = mock(FilterChain.class);
         filter.doFilter(new MockHttpServletRequest("GET", "/api/me/student/dashboard"), blocked, blockedChain);
         assertThat(blocked.getStatus()).isEqualTo(403);
+        assertThat(blocked.getContentType()).contains("application/json");
         assertThat(blocked.getContentAsString()).contains("MUST_CHANGE_PASSWORD");
         verifyNoInteractions(blockedChain);
 

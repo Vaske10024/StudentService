@@ -2,6 +2,7 @@ package org.raflab.studsluzba.controllers;
 
 import lombok.RequiredArgsConstructor;
 import org.raflab.studsluzba.model.dtos.FinanceBalanceDTO;
+import org.raflab.studsluzba.model.dtos.LedgerEntryDTO;
 import org.raflab.studsluzba.model.finance.LedgerEntry;
 import org.raflab.studsluzba.security.CurrentUser;
 import org.raflab.studsluzba.model.security.Permission;
@@ -27,28 +28,33 @@ public class FinanceController {
     }
 
     @GetMapping("/{indeksId}/ledger")
-    public List<LedgerEntry> ledger(@PathVariable Long indeksId) {
+    public List<LedgerEntryDTO> ledger(@PathVariable Long indeksId) {
         currentUser.requireAdminOrStudentOwnsIndeks(indeksId);
-        return service.ledger(indeksId);
+        return service.ledgerDto(indeksId);
     }
 
     @PostMapping("/{indeksId}/obligations")
-    public LedgerEntry obligation(@PathVariable Long indeksId, @RequestParam BigDecimal amountEur,
+    public LedgerEntryDTO obligation(@PathVariable Long indeksId, @RequestParam BigDecimal amountEur,
                                   @RequestParam LocalDate dueDate, @RequestParam String type) {
         permissions.require(Permission.FINANCE_WRITE);
-        return service.createObligation(indeksId, amountEur, dueDate, type);
+        return toDto(service.createObligation(indeksId, amountEur, dueDate, type));
     }
 
     @PostMapping("/{indeksId}/payments")
-    public LedgerEntry payment(@PathVariable Long indeksId, @RequestParam BigDecimal amountEur,
+    public LedgerEntryDTO payment(@PathVariable Long indeksId, @RequestParam BigDecimal amountEur,
                                @RequestParam(required = false) String description) {
         permissions.require(Permission.FINANCE_WRITE);
-        return service.postPayment(indeksId, amountEur, description);
+        return toDto(service.postPayment(indeksId, amountEur, description));
     }
 
     @PostMapping("/entries/{entryId}/reverse")
-    public LedgerEntry reverse(@PathVariable Long entryId, @RequestParam String reason) {
+    public LedgerEntryDTO reverse(@PathVariable Long entryId, @RequestParam String reason) {
         permissions.require(Permission.FINANCE_WRITE);
-        return service.reverse(entryId, reason);
+        return toDto(service.reverse(entryId, reason));
+    }
+
+    private LedgerEntryDTO toDto(LedgerEntry item) {
+        return new LedgerEntryDTO(item.getId(), item.getType().name(), item.getAmountEur(),
+                item.getDescription(), item.isReversed(), item.getCreatedAt());
     }
 }

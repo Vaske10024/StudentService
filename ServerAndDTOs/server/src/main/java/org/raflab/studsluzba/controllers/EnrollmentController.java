@@ -12,18 +12,49 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EnrollmentController {
     private final EnrollmentWorkflowService service;
+
     @PostMapping("/applications")
-    public EnrollmentApplication submit(@RequestHeader("Idempotency-Key") String key, @RequestBody @Valid EnrollmentApplicationCreateDTO dto) {
-        return service.submit(key, dto);
+    public EnrollmentApplicationDTO submit(@RequestHeader("Idempotency-Key") String key, @RequestBody @Valid EnrollmentApplicationCreateDTO dto) {
+        return toDto(service.submit(key, dto));
     }
+
     @PostMapping("/applications/{id}/approve")
-    public EnrollmentApplication approve(@PathVariable Long id, @RequestBody @Valid EnrollmentApprovalDTO dto) {
-        return service.approve(id, dto.getInitialPassword());
+    public EnrollmentApplicationDTO approve(@PathVariable Long id, @RequestBody @Valid EnrollmentApprovalDTO dto) {
+        return toDto(service.approve(id, dto.getInitialPassword()));
     }
+
     @PostMapping("/applications/{id}/reject")
-    public EnrollmentApplication reject(@PathVariable Long id, @RequestParam String reason) { return service.reject(id, reason); }
+    public EnrollmentApplicationDTO reject(@PathVariable Long id, @RequestParam String reason) {
+        return toDto(service.reject(id, reason));
+    }
+
     @GetMapping("/applications/{id}")
-    public EnrollmentApplication get(@PathVariable Long id) { return service.require(id); }
+    public EnrollmentApplicationDTO get(@PathVariable Long id) {
+        return toDto(service.require(id));
+    }
+
     @GetMapping("/applications")
-    public List<EnrollmentApplication> list() { return service.list(); }
+    public List<EnrollmentApplicationDTO> list() {
+        return service.list().stream().map(this::toDto).collect(java.util.stream.Collectors.toList());
+    }
+
+    private EnrollmentApplicationDTO toDto(EnrollmentApplication application) {
+        return new EnrollmentApplicationDTO(
+                application.getId(),
+                application.getStatus() == null ? null : application.getStatus().name(),
+                application.getIme(),
+                application.getPrezime(),
+                application.getEmail(),
+                application.getUsername(),
+                application.getStudijskiProgramId(),
+                application.getGodina(),
+                application.getTuitionEur(),
+                application.getCreatedStudent() == null ? null : application.getCreatedStudent().getId(),
+                application.getCreatedIndeks() == null ? null : application.getCreatedIndeks().getId(),
+                application.getDecisionReason(),
+                application.getDecidedByUserId(),
+                application.getDecidedAt(),
+                application.getCreatedAt()
+        );
+    }
 }

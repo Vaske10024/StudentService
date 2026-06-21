@@ -1,10 +1,8 @@
 package org.raflab.studsluzba.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.raflab.studsluzba.model.security.Role;
 import org.raflab.studsluzba.repositories.security.UserAccountRepository;
-import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -16,15 +14,12 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.time.Instant;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
 public class MustChangePasswordFilter extends OncePerRequestFilter {
     private final UserAccountRepository userAccountRepository;
-    private final ObjectMapper objectMapper;
+    private final ApiErrorResponseWriter apiErrorResponseWriter;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -37,16 +32,9 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
                     .map(account -> account.getRole() != Role.ADMIN && account.isMustChangePassword())
                     .orElse(false);
             if (blocked) {
-                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                Map<String, Object> body = new LinkedHashMap<>();
-                body.put("timestamp", Instant.now().toString());
-                body.put("status", HttpServletResponse.SC_FORBIDDEN);
-                body.put("error", "Forbidden");
-                body.put("code", "MUST_CHANGE_PASSWORD");
-                body.put("message", "Privremena lozinka mora biti promenjena pre korišćenja sistema.");
-                body.put("path", request.getRequestURI());
-                objectMapper.writeValue(response.getOutputStream(), body);
+                apiErrorResponseWriter.write(response, HttpServletResponse.SC_FORBIDDEN, "MUST_CHANGE_PASSWORD",
+                        "Privremena lozinka mora biti promenjena pre koriscenja sistema.",
+                        request.getRequestURI());
                 return;
             }
         }

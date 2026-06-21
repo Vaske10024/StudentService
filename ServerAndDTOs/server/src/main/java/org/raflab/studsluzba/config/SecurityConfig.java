@@ -3,6 +3,7 @@ package org.raflab.studsluzba.config;
 import lombok.RequiredArgsConstructor;
 import org.raflab.studsluzba.security.UserAccountDetailsService;
 import org.raflab.studsluzba.security.MustChangePasswordFilter;
+import org.raflab.studsluzba.security.ApiErrorResponseWriter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,6 +33,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final UserAccountDetailsService userDetailsService;
     private final MustChangePasswordFilter mustChangePasswordFilter;
+    private final ApiErrorResponseWriter apiErrorResponseWriter;
 
     @Value("${app.cors.allowed-origins:http://localhost:5173}")
     private String allowedOrigins;
@@ -105,10 +107,13 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/sg/**").authenticated()
 
                 .antMatchers("/api/studij/**").hasRole("ADMIN")
-                .antMatchers("/api/enrollment/year-requests/me/**").hasRole("STUDENT")
-                .antMatchers("/api/enrollment/year-requests/admin/**").hasRole("ADMIN")
+                .antMatchers("/api/enrollment/year-requests/me", "/api/enrollment/year-requests/me/**").hasRole("STUDENT")
+                .antMatchers("/api/enrollment/year-requests/admin", "/api/enrollment/year-requests/admin/**").hasRole("ADMIN")
+                .antMatchers("/api/enrollment/applications", "/api/enrollment/applications/**").hasRole("ADMIN")
                 .antMatchers(HttpMethod.POST, "/api/uplate/dodaj").hasRole("ADMIN")
                 .antMatchers("/api/uplate/list", "/api/uplate/saldo").authenticated()
+                .antMatchers(HttpMethod.POST, "/api/finance/**").hasRole("ADMIN")
+                .antMatchers("/api/finance/**").authenticated()
 
                 .antMatchers("/api/ispit/admin/**").hasRole("ADMIN")
                 .antMatchers(HttpMethod.POST, "/api/ispit/priznaj").hasRole("ADMIN")
@@ -134,11 +139,24 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/srednja/**", "/api/visoka/**").hasRole("ADMIN")
                 .antMatchers("/actuator/**").hasRole("ADMIN")
                 .antMatchers("/api/security/**", "/api/audit/**", "/api/settings/**", "/api/academic/**", "/api/reports/**").hasRole("ADMIN")
+                .antMatchers("/api/requests/admin", "/api/requests/admin/**").hasRole("ADMIN")
+                .antMatchers(HttpMethod.POST, "/api/requests/*/approve", "/api/requests/*/reject").hasRole("ADMIN")
+                .antMatchers("/api/requests", "/api/requests/**").authenticated()
+                .antMatchers("/api/student-lifecycle/requests/*/approve", "/api/student-lifecycle/requests/*/reject").hasRole("ADMIN")
+                .antMatchers(HttpMethod.POST, "/api/student-lifecycle/*/status").hasRole("ADMIN")
+                .antMatchers("/api/student-lifecycle", "/api/student-lifecycle/**").authenticated()
+                .antMatchers(HttpMethod.POST, "/api/schedule/**").hasRole("ADMIN")
+                .antMatchers("/api/schedule/**").authenticated()
+                .antMatchers("/api/notifications", "/api/notifications/**").authenticated()
                 .anyRequest().authenticated()
             .and()
             .exceptionHandling()
-                .authenticationEntryPoint((request, response, exception) -> response.sendError(401, "Korisnik nije prijavljen."))
-                .accessDeniedHandler((request, response, exception) -> response.sendError(403, "Korisnik nema potrebnu dozvolu."))
+                .authenticationEntryPoint((request, response, exception) ->
+                        apiErrorResponseWriter.write(response, 401, "UNAUTHENTICATED",
+                                "Korisnik nije prijavljen.", request.getRequestURI()))
+                .accessDeniedHandler((request, response, exception) ->
+                        apiErrorResponseWriter.write(response, 403, "FORBIDDEN",
+                                "Korisnik nema potrebnu dozvolu.", request.getRequestURI()))
             .and()
             .formLogin().disable()
             .httpBasic().disable()

@@ -2,6 +2,7 @@ package org.raflab.studsluzba.services;
 
 import lombok.RequiredArgsConstructor;
 import org.raflab.studsluzba.model.dtos.StudentRequestCreateDTO;
+import org.raflab.studsluzba.model.dtos.StudentDocumentDTO;
 import org.raflab.studsluzba.model.dtos.StudentRequestDTO;
 import org.raflab.studsluzba.model.dtos.StudentStatusChangeRequest;
 import org.raflab.studsluzba.model.StudentIndeks;
@@ -60,14 +61,14 @@ public class DocumentRequestService {
         return toDto(saved);
     }
 
-    public StudentDocument upload(Long requestId, DocumentType type, String name, String contentType, byte[] bytes) {
+    public StudentDocumentDTO upload(Long requestId, DocumentType type, String name, String contentType, byte[] bytes) {
         StudentRequest request = require(requestId);
         currentUser.requireAdminOrStudentOwnsIndeks(request.getStudentIndeks().getId());
         StudentDocument doc = new StudentDocument();
         doc.setStudentRequest(request); doc.setStudentIndeks(request.getStudentIndeks()); doc.setType(type);
         doc.setOriginalName(name); doc.setContentType(contentType); doc.setSizeBytes(bytes.length);
         doc.setStorageKey(storage.store(bytes, contentType));
-        return documentRepo.save(doc);
+        return toDocumentDto(documentRepo.save(doc));
     }
 
     @Transactional(readOnly = true)
@@ -75,6 +76,13 @@ public class DocumentRequestService {
         StudentDocument doc = documentRepo.findById(documentId).orElseThrow(() -> ApiException.notFound("Dokument ne postoji."));
         currentUser.requireAdminOrStudentOwnsIndeks(doc.getStudentIndeks().getId());
         return storage.load(doc.getStorageKey());
+    }
+
+    @Transactional(readOnly = true)
+    public StudentDocumentDTO document(Long documentId) {
+        StudentDocument doc = documentRepo.findById(documentId).orElseThrow(() -> ApiException.notFound("Dokument ne postoji."));
+        currentUser.requireAdminOrStudentOwnsIndeks(doc.getStudentIndeks().getId());
+        return toDocumentDto(doc);
     }
 
     @Transactional(readOnly = true)
@@ -94,9 +102,11 @@ public class DocumentRequestService {
     }
 
     @Transactional(readOnly = true)
-    public List<StudentDocument> documents(Long indeksId) {
+    public List<StudentDocumentDTO> documents(Long indeksId) {
         currentUser.requireAdminOrStudentOwnsIndeks(indeksId);
-        return documentRepo.findByStudentIndeksIdOrderByCreatedAtDesc(indeksId);
+        return documentRepo.findByStudentIndeksIdOrderByCreatedAtDesc(indeksId).stream()
+                .map(this::toDocumentDto)
+                .collect(Collectors.toList());
     }
 
     private StudentRequest require(Long id) {
@@ -143,5 +153,18 @@ public class DocumentRequestService {
         dto.setCreatedAt(request.getCreatedAt());
         dto.setDecidedAt(request.getDecidedAt());
         return dto;
+    }
+
+    private StudentDocumentDTO toDocumentDto(StudentDocument document) {
+        return new StudentDocumentDTO(
+                document.getId(),
+                document.getStudentIndeks() == null ? null : document.getStudentIndeks().getId(),
+                document.getStudentRequest() == null ? null : document.getStudentRequest().getId(),
+                document.getType() == null ? null : document.getType().name(),
+                document.getOriginalName(),
+                document.getContentType(),
+                document.getSizeBytes(),
+                document.getCreatedAt()
+        );
     }
 }
