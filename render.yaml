@@ -2,7 +2,7 @@ services:
   - type: web
     name: backend
     runtime: docker
-    plan: starter
+    plan: free
     region: frankfurt
     dockerfilePath: ./ServerAndDTOs/Dockerfile
     dockerContext: ./ServerAndDTOs
