@@ -1,12 +1,13 @@
 package org.raflab.studsluzba.repositories.security;
 
-import org.raflab.studsluzba.model.security.UserAccount;
 import org.raflab.studsluzba.model.security.Role;
+import org.raflab.studsluzba.model.security.UserAccount;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.Optional;
 
 public interface UserAccountRepository extends JpaRepository<UserAccount, Long> {
@@ -22,6 +23,7 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
 
     boolean existsByUsername(String username);
     boolean existsByRole(Role role);
+    boolean existsByRoleIn(Collection<Role> roles);
 
     @EntityGraph(attributePaths = {"linkedNastavnik"})
     Optional<UserAccount> findByLinkedNastavnikId(Long nastavnikId);

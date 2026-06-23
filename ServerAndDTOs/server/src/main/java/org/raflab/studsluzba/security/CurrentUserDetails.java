@@ -6,7 +6,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
 
 public class CurrentUserDetails implements UserDetails {
     private final UserAccount account;
@@ -21,7 +22,12 @@ public class CurrentUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + account.getRole().name()));
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + account.getRole().name()));
+        if (account.getRole() == org.raflab.studsluzba.model.security.Role.HEAD_ADMIN) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        }
+        return authorities;
     }
 
     @Override

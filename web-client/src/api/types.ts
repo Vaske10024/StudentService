@@ -1,4 +1,4 @@
-export type Role = 'STUDENT' | 'PROFESSOR' | 'ADMIN';
+export type Role = 'STUDENT' | 'PROFESSOR' | 'ADMIN' | 'HEAD_ADMIN';
 
 export interface AuthUser {
   id: number;
@@ -28,6 +28,21 @@ export interface Page<T> {
   totalPages: number;
   number: number;
   size: number;
+}
+
+export interface Lead {
+  id: number;
+  initials: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  fullName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  interestedProgram?: string | null;
+  source?: string | null;
+  note?: string | null;
+  createdAt: string;
+  fullAccess: boolean;
 }
 
 export interface StudentIndex {

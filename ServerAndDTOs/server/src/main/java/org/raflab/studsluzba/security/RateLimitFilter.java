@@ -31,9 +31,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String path = request.getRequestURI();
-        int limit = path.equals("/api/auth/login")
-                ? 10
-                : (path.contains("/upload") || path.contains("/export") || path.contains("/search") ? 60 : 300);
+        int limit = 300;
+        if (path.equals("/api/auth/login")) {
+            limit = 10;
+        } else if (path.equals("/api/leads")) {
+            limit = 30;
+        } else if (path.contains("/upload") || path.contains("/export") || path.contains("/search")) {
+            limit = 60;
+        }
         long minute = Instant.now().getEpochSecond() / 60;
         String key = request.getRemoteAddr() + ":" + path;
         Bucket bucket = buckets.computeIfAbsent(key, ignored -> new Bucket());

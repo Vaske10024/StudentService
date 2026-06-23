@@ -17,7 +17,7 @@ public class PermissionService {
  public boolean has(Permission permission){
   UserAccount user=currentUser.account();
   return overrideRepo.findByUserAccountIdAndPermission(user.getId(),permission).map(UserPermissionOverride::isAllowed)
-    .orElseGet(()->user.getRole()==Role.ADMIN || roleRepo.existsByRoleAndPermission(user.getRole(),permission));
+    .orElseGet(()->user.getRole()==Role.ADMIN || user.getRole()==Role.HEAD_ADMIN || roleRepo.existsByRoleAndPermission(user.getRole(),permission));
  }
  public void require(Permission permission){if(!has(permission))throw new AccessDeniedException("Nedostaje dozvola: "+permission);}
  public List<String> currentPermissions(){return Arrays.stream(Permission.values()).filter(this::has).map(Enum::name).collect(Collectors.toList());}

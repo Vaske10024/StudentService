@@ -80,6 +80,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .antMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
                 .antMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                .antMatchers(HttpMethod.POST, "/api/leads").permitAll()
+                .antMatchers("/api/leads/admin", "/api/leads/admin/**").hasRole("ADMIN")
                 .antMatchers("/api/auth/logout", "/api/auth/me", "/api/auth/password", "/api/me/**").authenticated()
 
                 .antMatchers(HttpMethod.POST, "/api/student/add", "/api/student/saveindeks", "/api/student/saveindeks/provision").hasRole("ADMIN")

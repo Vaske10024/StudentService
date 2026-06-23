@@ -53,7 +53,12 @@ public class CurrentUser {
     }
 
     public boolean isAdmin() {
-        return role() == Role.ADMIN;
+        Role role = role();
+        return role == Role.ADMIN || role == Role.HEAD_ADMIN;
+    }
+
+    public boolean isHeadAdmin() {
+        return role() == Role.HEAD_ADMIN;
     }
 
     public boolean isStudent() {

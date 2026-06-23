@@ -13,6 +13,7 @@ const pageTitles: Record<string, string> = {
   notifications: 'Notifications',
   enrollments: 'Enrollments',
   reports: 'Reports',
+  leads: 'Leadovi',
   students: 'Students',
   professors: 'Professors',
   programs: 'Study programs',
@@ -33,7 +34,8 @@ export function AppShell() {
   const pathSegments = location.pathname.split('/').filter(Boolean);
   const currentSegment = pathSegments[pathSegments.length - 1] ?? 'dashboard';
   const pageTitle = pageTitles[currentSegment] ?? 'Student Service';
-  const roleLabel = user?.role === 'ADMIN' ? 'Administrator' : user?.role === 'PROFESSOR' ? 'Professor' : 'Student';
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'HEAD_ADMIN';
+  const roleLabel = user?.role === 'HEAD_ADMIN' ? 'Head administrator' : user?.role === 'ADMIN' ? 'Administrator' : user?.role === 'PROFESSOR' ? 'Professor' : 'Student';
   const initials = (user?.username ?? 'U').slice(0, 2).toUpperCase();
 
   async function onLogout() {
@@ -71,8 +73,9 @@ export function AppShell() {
             <NavLink to="/professor/exams">Exams and results</NavLink>
             <NavLink to="/professor/predispit">Pre-exam activities</NavLink>
           </NavGroup>}
-          {user?.role === 'ADMIN' && <NavGroup label="Administration">
+          {isAdmin && <NavGroup label="Administration">
             <NavLink to="/admin/students">Students</NavLink>
+            <NavLink to="/admin/leads">Leadovi</NavLink>
             <NavLink to="/admin/professors">Professors</NavLink>
             <NavLink to="/admin/subjects">Subjects</NavLink>
             <NavLink to="/admin/programs">Study programs</NavLink>

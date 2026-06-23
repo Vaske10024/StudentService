@@ -29,7 +29,7 @@ public class MustChangePasswordFilter extends OncePerRequestFilter {
                 && !(authentication instanceof AnonymousAuthenticationToken)
                 && !isAllowed(request.getRequestURI())) {
             boolean blocked = userAccountRepository.findByUsername(authentication.getName())
-                    .map(account -> account.getRole() != Role.ADMIN && account.isMustChangePassword())
+                    .map(account -> account.getRole() != Role.ADMIN && account.getRole() != Role.HEAD_ADMIN && account.isMustChangePassword())
                     .orElse(false);
             if (blocked) {
                 apiErrorResponseWriter.write(response, HttpServletResponse.SC_FORBIDDEN, "MUST_CHANGE_PASSWORD",

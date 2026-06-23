@@ -12,6 +12,10 @@ import { StudentDashboardPage, StudentExamsPage, StudentGradesPage, StudentPayme
 import { AdminEnrollmentsPage, AdminPaymentsPage, AdminReportsPage, AdminRequestsPage, NotificationsPage, StudentRequestsPage } from './pages/ExtendedPages';
 import { AdminProfessorsPage, AdminProgramsPage, AdminSchoolYearsPage, AdminSubjectsPage } from './pages/AdminCatalogPages';
 import { AdminYearEnrollmentsPage, StudentYearEnrollmentPage } from './pages/YearEnrollmentPages';
+import { AdminLeadsPage, PublicLeadPage } from './pages/LeadPages';
+import type { Role } from './api/types';
+
+const adminRoles: Role[] = ['ADMIN', 'HEAD_ADMIN'];
 
 export function App() {
   return (
@@ -19,6 +23,8 @@ export function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/interesovanje" element={<PublicLeadPage />} />
+          <Route path="/leads" element={<PublicLeadPage />} />
           <Route element={<RequireAuth />}>
             <Route element={<AppShell />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -50,9 +56,10 @@ export function App() {
                 <Route path="/professor/predispit" element={<ProfessorPredispitPage />} />
               </Route>
 
-              <Route element={<RequireAuth roles={['ADMIN']} />}>
+              <Route element={<RequireAuth roles={adminRoles} />}>
                 <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
                 <Route path="/admin/students" element={<AdminStudentsPage />} />
+                <Route path="/admin/leads" element={<AdminLeadsPage />} />
                 <Route path="/admin/students/new" element={<AdminStudentNewPage />} />
                 <Route path="/admin/students/:id" element={<AdminStudentDetailPage />} />
                 <Route path="/admin/students/:id/indexes" element={<AdminStudentIndexesPage />} />
@@ -64,11 +71,11 @@ export function App() {
                 <Route path="/admin/exams" element={<AdminExamsPage />} />
                 <Route path="/admin/exams/:id/results" element={<ProfessorExamResultsPage />} />
               </Route>
-              <Route element={<RequireAuth roles={['ADMIN']} permissions={['ENROLLMENT_WRITE']} />}><Route path="/admin/enrollments" element={<AdminEnrollmentsPage />} /></Route>
-              <Route element={<RequireAuth roles={['ADMIN']} permissions={['ENROLLMENT_WRITE']} />}><Route path="/admin/year-enrollments" element={<AdminYearEnrollmentsPage />} /></Route>
-              <Route element={<RequireAuth roles={['ADMIN']} permissions={['DOCUMENT_DECIDE']} />}><Route path="/admin/requests" element={<AdminRequestsPage />} /></Route>
-              <Route element={<RequireAuth roles={['ADMIN']} permissions={['FINANCE_WRITE']} />}><Route path="/admin/payments" element={<AdminPaymentsPage />} /></Route>
-              <Route element={<RequireAuth roles={['ADMIN']} permissions={['REPORT_EXPORT']} />}><Route path="/admin/reports" element={<AdminReportsPage />} /></Route>
+              <Route element={<RequireAuth roles={adminRoles} permissions={['ENROLLMENT_WRITE']} />}><Route path="/admin/enrollments" element={<AdminEnrollmentsPage />} /></Route>
+              <Route element={<RequireAuth roles={adminRoles} permissions={['ENROLLMENT_WRITE']} />}><Route path="/admin/year-enrollments" element={<AdminYearEnrollmentsPage />} /></Route>
+              <Route element={<RequireAuth roles={adminRoles} permissions={['DOCUMENT_DECIDE']} />}><Route path="/admin/requests" element={<AdminRequestsPage />} /></Route>
+              <Route element={<RequireAuth roles={adminRoles} permissions={['FINANCE_WRITE']} />}><Route path="/admin/payments" element={<AdminPaymentsPage />} /></Route>
+              <Route element={<RequireAuth roles={adminRoles} permissions={['REPORT_EXPORT']} />}><Route path="/admin/reports" element={<AdminReportsPage />} /></Route>
 
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Route>

@@ -213,10 +213,11 @@ The production frontend image serves the React SPA and proxies browser requests 
 | `CORS_ALLOWED_ORIGINS` | Comma-separated origins allowed to call the backend directly | `http://localhost:5173` |
 | `BOOTSTRAP_ADMIN_USERNAME` | Username used only when creating the first admin account | `admin@example.local` |
 | `BOOTSTRAP_ADMIN_PASSWORD` | Password used only when creating the first admin account | development-only Compose default |
+| `BOOTSTRAP_ADMIN_ROLE` | Role for the first bootstrap admin account, `HEAD_ADMIN` or `ADMIN` | `HEAD_ADMIN` |
 
 Compose sets the backend `DB_URL` to `jdbc:mysql://mysql:3306/<MYSQL_DATABASE>?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC`, where `mysql` is the Compose service name. The `dev` profile is intentional for local Docker because it uses Hibernate schema updates and does not require a pre-migrated production database. Use the existing `prod` profile only with a schema prepared by the Flyway migrations and HTTPS-compatible secure-cookie settings.
 
-Do not use the Compose default passwords outside an isolated local machine. The first admin is created only if no admin exists; remove `BOOTSTRAP_ADMIN_USERNAME` and `BOOTSTRAP_ADMIN_PASSWORD` from `.env` after successful bootstrap when using a persistent environment.
+Do not use the Compose default passwords outside an isolated local machine. The first admin is created only if no admin or head admin exists; remove `BOOTSTRAP_ADMIN_USERNAME` and `BOOTSTRAP_ADMIN_PASSWORD` from `.env` after successful bootstrap when using a persistent environment.
 
 ### Docker troubleshooting
 
@@ -248,6 +249,7 @@ export DB_PASSWORD='change-me'
 export CORS_ALLOWED_ORIGINS='http://localhost:5173'
 export BOOTSTRAP_ADMIN_USERNAME='admin@example.edu'
 export BOOTSTRAP_ADMIN_PASSWORD='replace-with-a-strong-secret'
+export BOOTSTRAP_ADMIN_ROLE='HEAD_ADMIN'
 
 ./mvnw test
 ./mvnw install -DskipTests
@@ -258,7 +260,7 @@ The server listens on `http://localhost:8080` by default.
 
 ### First admin bootstrap
 
-When no `ADMIN` account exists, set `BOOTSTRAP_ADMIN_USERNAME` and `BOOTSTRAP_ADMIN_PASSWORD` before one server start. The initializer creates exactly one enabled admin account and becomes a no-op as soon as any admin exists. Remove the bootstrap credentials from the environment after the first successful start.
+When no `ADMIN` or `HEAD_ADMIN` account exists, set `BOOTSTRAP_ADMIN_USERNAME` and `BOOTSTRAP_ADMIN_PASSWORD` before one server start. The initializer creates exactly one enabled admin account and becomes a no-op as soon as any admin exists. `BOOTSTRAP_ADMIN_ROLE` defaults to `HEAD_ADMIN`; set it to `ADMIN` only when the first account should not see full lead data. Remove the bootstrap credentials from the environment after the first successful start.
 
 On Windows PowerShell, install the current multi-module artifacts before starting the
 server so the runtime does not pick up an older DTO snapshot:
@@ -346,8 +348,9 @@ The only user-facing roles are:
 - `STUDENT`
 - `PROFESSOR`
 - `ADMIN`
+- `HEAD_ADMIN`
 
-The code uses an enum and centralized authorization helper so permissions can be extended later without introducing extra visible roles.
+`HEAD_ADMIN` inherits admin access and is the only role that receives full lead details/export. Regular admins receive masked lead data.
 
 ## Auth endpoints
 

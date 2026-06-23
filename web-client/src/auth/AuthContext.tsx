@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
-  const hasRole = useCallback((...roles: Role[]) => Boolean(user && roles.includes(user.role)), [user]);
+  const hasRole = useCallback((...roles: Role[]) => Boolean(user && (roles.includes(user.role) || (user.role === 'HEAD_ADMIN' && roles.includes('ADMIN')))), [user]);
   const hasPermission = useCallback((...permissions: string[]) => Boolean(user && permissions.every((permission) => user.permissions?.includes(permission))), [user]);
 
   const value = useMemo<AuthContextValue>(() => ({ user, loading, error, login, logout, hasRole, hasPermission, refresh }), [user, loading, error, login, logout, hasRole, hasPermission, refresh]);
