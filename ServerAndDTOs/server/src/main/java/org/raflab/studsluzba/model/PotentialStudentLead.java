@@ -70,6 +70,7 @@ public class PotentialStudentLead {
     @PrePersist
     void prePersist() {
         LocalDateTime now = LocalDateTime.now();
+        ensureStatus();
         if (consentAt == null) {
             consentAt = now;
         }
@@ -79,6 +80,13 @@ public class PotentialStudentLead {
 
     @PreUpdate
     void preUpdate() {
+        ensureStatus();
         updatedAt = LocalDateTime.now();
+    }
+
+    private void ensureStatus() {
+        if (status == null) {
+            status = LeadStatus.NEW;
+        }
     }
 }
