@@ -32,7 +32,8 @@ export interface Page<T> {
 
 export interface Lead {
   id: number;
-  initials: string;
+  maskedName?: string | null;
+  maskedEmail?: string | null;
   firstName?: string | null;
   lastName?: string | null;
   fullName?: string | null;
@@ -41,8 +42,71 @@ export interface Lead {
   interestedProgram?: string | null;
   source?: string | null;
   note?: string | null;
+  status: string;
   createdAt: string;
   fullAccess: boolean;
+}
+
+export interface LeadEmailTemplate {
+  id: number;
+  name: string;
+  subject: string;
+  body: string;
+  active: boolean;
+  createdByUserId: number;
+  createdByUsername: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LeadEmailMessage {
+  id: number;
+  leadId: number;
+  templateId?: number | null;
+  templateName?: string | null;
+  sentByUserId: number;
+  sentByUsername: string;
+  subject: string;
+  body: string;
+  status: 'SENT' | 'FAILED';
+  providerMessageId?: string | null;
+  errorMessage?: string | null;
+  sentAt?: string | null;
+  createdAt: string;
+}
+
+export interface LeadEmailMonitoring {
+  message: LeadEmailMessage;
+  lead: Lead;
+}
+
+export interface LeadAuditLog {
+  id: number;
+  actorUserId?: number | null;
+  actorUsername?: string | null;
+  actorRole?: string | null;
+  leadId?: number | null;
+  action: string;
+  details?: string | null;
+  oldValue?: string | null;
+  newValue?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  createdAt: string;
+}
+
+export interface LeadExportLog {
+  id: number;
+  exportedByUserId: number;
+  exportedByUsername: string;
+  exporterRole: string;
+  exportType: string;
+  masked: boolean;
+  recordCount: number;
+  filters?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  createdAt: string;
 }
 
 export interface StudentIndex {

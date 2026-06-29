@@ -83,6 +83,13 @@ input, select, textarea {
   transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
 }
 textarea { min-height: 105px; resize: vertical; }
+.leadMessageBody { min-height: 220px; }
+.messageHistory { display: grid; gap: .8rem; }
+.messageCard { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1rem; background: var(--surface-soft); }
+.messageCard header { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+.messageCard pre, .tableMessageBody { margin: .75rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: 1.55; }
+.messageMeta { margin: .35rem 0 0; color: var(--muted); font-size: .78rem; }
+.templateEditor { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
 input::placeholder, textarea::placeholder { color: #95a2b4; }
 input:hover, select:hover, textarea:hover { border-color: #a9bad0; }
 input:focus, select:focus, textarea:focus { outline: 0; border-color: var(--primary-500); box-shadow: 0 0 0 3px rgba(49, 119, 200, .15); }

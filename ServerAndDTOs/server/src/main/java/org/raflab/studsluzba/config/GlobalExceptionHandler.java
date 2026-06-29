@@ -1,7 +1,9 @@
 package org.raflab.studsluzba.config;
 
 import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 import org.raflab.studsluzba.security.ApiException;
+import org.raflab.studsluzba.services.LeadAuditService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +27,9 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+    private final LeadAuditService leadAuditService;
 
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<Map<String, Object>> handleApi(ApiException ex, HttpServletRequest request) {
@@ -76,6 +80,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({AccessDeniedException.class})
     public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
+        if (request.getRequestURI().startsWith("/api/leads/admin")) {
+            try {
+                leadAuditService.unauthorized(request.getRequestURI(), clientAddress(request),
+                        request.getHeader("User-Agent"));
+            } catch (RuntimeException ignored) {
+                // Preserve the original authorization response if audit persistence fails.
+            }
+        }
         return build(HttpStatus.FORBIDDEN, "FORBIDDEN", ex.getMessage(), request.getRequestURI(), null);
     }
 
@@ -119,5 +131,11 @@ public class GlobalExceptionHandler {
         body.put("path", path);
         if (details != null) body.put("details", details);
         return ResponseEntity.status(status).body(body);
+    }
+
+    private String clientAddress(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        return forwarded == null || forwarded.trim().isEmpty()
+                ? request.getRemoteAddr() : forwarded.split(",")[0].trim();
     }
 }

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.raflab.studsluzba.security.UserAccountDetailsService;
 import org.raflab.studsluzba.security.MustChangePasswordFilter;
 import org.raflab.studsluzba.security.ApiErrorResponseWriter;
+import org.raflab.studsluzba.services.LeadAuditService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,6 +35,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     private final UserAccountDetailsService userDetailsService;
     private final MustChangePasswordFilter mustChangePasswordFilter;
     private final ApiErrorResponseWriter apiErrorResponseWriter;
+    private final LeadAuditService leadAuditService;
 
     @Value("${app.cors.allowed-origins:http://localhost:5173}")
     private String allowedOrigins;
@@ -154,16 +156,33 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .and()
             .exceptionHandling()
                 .authenticationEntryPoint((request, response, exception) ->
-                        apiErrorResponseWriter.write(response, 401, "UNAUTHENTICATED",
-                                "Korisnik nije prijavljen.", request.getRequestURI()))
-                .accessDeniedHandler((request, response, exception) ->
+                        {
+                            auditLeadDenial(request);
+                            apiErrorResponseWriter.write(response, 401, "UNAUTHENTICATED",
+                                    "Korisnik nije prijavljen.", request.getRequestURI());
+                        })
+                .accessDeniedHandler((request, response, exception) -> {
+                        auditLeadDenial(request);
                         apiErrorResponseWriter.write(response, 403, "FORBIDDEN",
-                                "Korisnik nema potrebnu dozvolu.", request.getRequestURI()))
+                                "Korisnik nema potrebnu dozvolu.", request.getRequestURI());
+                })
             .and()
             .formLogin().disable()
             .httpBasic().disable()
             .logout().disable()
             .sessionManagement().sessionFixation().migrateSession();
         http.addFilterAfter(mustChangePasswordFilter, UsernamePasswordAuthenticationFilter.class);
+    }
+
+    private void auditLeadDenial(javax.servlet.http.HttpServletRequest request) {
+        if (!request.getRequestURI().startsWith("/api/leads/admin")) return;
+        try {
+            String forwarded = request.getHeader("X-Forwarded-For");
+            String ip = forwarded == null || forwarded.trim().isEmpty()
+                    ? request.getRemoteAddr() : forwarded.split(",")[0].trim();
+            leadAuditService.unauthorized(request.getRequestURI(), ip, request.getHeader("User-Agent"));
+        } catch (RuntimeException ignored) {
+            // Audit failure must never replace the security response.
+        }
     }
 }

@@ -64,8 +64,11 @@ public class SecurityAdminController {
     }
 
     private AuditLogDTO toDto(AuditLog item) {
-        return new AuditLogDTO(item.getId(), item.getActorUserId(), item.getAction(),
-                item.getDetails(), item.getCreatedAt());
+        return new AuditLogDTO(item.getId(), item.getActorUserId(), item.getActorUsername(),
+                item.getActorRole() == null ? null : item.getActorRole().name(),
+                item.getLead() == null ? null : item.getLead().getId(),
+                item.getAction(), item.getDetails(), item.getOldValue(), item.getNewValue(),
+                item.getIpAddress(), item.getUserAgent(), item.getCreatedAt());
     }
 
     private SystemSettingDTO toDto(SystemSetting item) {

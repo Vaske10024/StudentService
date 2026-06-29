@@ -11,7 +11,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class LeadDTO {
     private Long id;
-    private String initials;
+    private String maskedName;
+    private String maskedEmail;
     private String firstName;
     private String lastName;
     private String fullName;
@@ -20,6 +21,7 @@ public class LeadDTO {
     private String interestedProgram;
     private String source;
     private String note;
+    private String status;
     private LocalDateTime createdAt;
     private boolean fullAccess;
 }

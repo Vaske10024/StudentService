@@ -7,16 +7,15 @@ import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
-public class AuditLogDTO {
+public class LeadExportLogDTO {
     private Long id;
-    private Long actorUserId;
-    private String actorUsername;
-    private String actorRole;
-    private Long leadId;
-    private String action;
-    private String details;
-    private String oldValue;
-    private String newValue;
+    private Long exportedByUserId;
+    private String exportedByUsername;
+    private String exporterRole;
+    private String exportType;
+    private boolean masked;
+    private int recordCount;
+    private String filters;
     private String ipAddress;
     private String userAgent;
     private LocalDateTime createdAt;

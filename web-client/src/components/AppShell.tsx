@@ -14,6 +14,7 @@ const pageTitles: Record<string, string> = {
   enrollments: 'Enrollments',
   reports: 'Reports',
   leads: 'Leadovi',
+  monitoring: 'Lead monitoring',
   students: 'Students',
   professors: 'Professors',
   programs: 'Study programs',
@@ -76,6 +77,7 @@ export function AppShell() {
           {isAdmin && <NavGroup label="Administration">
             <NavLink to="/admin/students">Students</NavLink>
             <NavLink to="/admin/leads">Leadovi</NavLink>
+            {user?.role === 'HEAD_ADMIN' && <NavLink to="/admin/leads/monitoring">Lead monitoring</NavLink>}
             <NavLink to="/admin/professors">Professors</NavLink>
             <NavLink to="/admin/subjects">Subjects</NavLink>
             <NavLink to="/admin/programs">Study programs</NavLink>

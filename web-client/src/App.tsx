@@ -12,7 +12,7 @@ import { StudentDashboardPage, StudentExamsPage, StudentGradesPage, StudentPayme
 import { AdminEnrollmentsPage, AdminPaymentsPage, AdminReportsPage, AdminRequestsPage, NotificationsPage, StudentRequestsPage } from './pages/ExtendedPages';
 import { AdminProfessorsPage, AdminProgramsPage, AdminSchoolYearsPage, AdminSubjectsPage } from './pages/AdminCatalogPages';
 import { AdminYearEnrollmentsPage, StudentYearEnrollmentPage } from './pages/YearEnrollmentPages';
-import { AdminLeadsPage, PublicLeadPage } from './pages/LeadPages';
+import { AdminLeadsPage, HeadAdminLeadMonitoringPage, PublicLeadPage } from './pages/LeadPages';
 import type { Role } from './api/types';
 
 const adminRoles: Role[] = ['ADMIN', 'HEAD_ADMIN'];
@@ -70,6 +70,9 @@ export function App() {
                 <Route path="/admin/exam-periods" element={<AdminExamPeriodsPage />} />
                 <Route path="/admin/exams" element={<AdminExamsPage />} />
                 <Route path="/admin/exams/:id/results" element={<ProfessorExamResultsPage />} />
+              </Route>
+              <Route element={<RequireAuth roles={['HEAD_ADMIN']} />}>
+                <Route path="/admin/leads/monitoring" element={<HeadAdminLeadMonitoringPage />} />
               </Route>
               <Route element={<RequireAuth roles={adminRoles} permissions={['ENROLLMENT_WRITE']} />}><Route path="/admin/enrollments" element={<AdminEnrollmentsPage />} /></Route>
               <Route element={<RequireAuth roles={adminRoles} permissions={['ENROLLMENT_WRITE']} />}><Route path="/admin/year-enrollments" element={<AdminYearEnrollmentsPage />} /></Route>
